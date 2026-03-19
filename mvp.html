@@ -1,0 +1,2385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DOP-C02 Knowledge Check</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface2: #273448;
+    --border: #334155;
+    --text: #e2e8f0;
+    --text-muted: #94a3b8;
+    --green: #22c55e;
+    --green-dim: rgba(34,197,94,0.15);
+    --red: #ef4444;
+    --red-dim: rgba(239,68,68,0.15);
+    --radius: 12px;
+    --accent: #3b82f6;
+    --accent-bg: rgba(59,130,246,0.15);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2rem 1rem 4rem;
+  }
+
+  #app { width: 100%; max-width: 760px; }
+
+  /* -- Utility -- */
+  .hidden { display: none !important; }
+  .mono { font-family: 'Space Mono', monospace; }
+
+  /* -- Header -- */
+  .header { text-align: center; margin-bottom: 2.5rem; }
+  .header h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.5px; }
+  .header p  { color: var(--text-muted); margin-top: 0.4rem; font-size: 0.95rem; }
+
+  /* -- Menu -- */
+  .menu-grid {
+    display: grid;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .domain-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .domain-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+    background: var(--surface);
+  }
+  .domain-header:hover { background: var(--surface2); }
+
+  .domain-checkbox {
+    width: 20px; height: 20px;
+    border-radius: 6px;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .domain-header.checked .domain-checkbox {
+    background: var(--domain-color);
+    border-color: var(--domain-color);
+  }
+  .domain-checkbox svg { display: none; }
+  .domain-header.checked .domain-checkbox svg { display: block; }
+
+  .domain-name {
+    flex: 1;
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+  .domain-num {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+  .domain-count {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-family: 'Space Mono', monospace;
+    flex-shrink: 0;
+  }
+  .domain-expand {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+  .domain-expand.open { transform: rotate(180deg); }
+
+  .domain-services {
+    display: none;
+    padding: 0.25rem 0.5rem 0.5rem;
+    background: var(--bg);
+  }
+  .domain-services.open { display: block; }
+
+  .service-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.55rem 0.85rem;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    user-select: none;
+    margin-top: 0.4rem;
+  }
+  .service-row:hover { border-color: #475569; background: var(--surface2); }
+  .service-row.checked { border-color: var(--domain-color); }
+
+  .service-checkbox {
+    width: 16px; height: 16px;
+    border-radius: 4px;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .service-row.checked .service-checkbox {
+    background: var(--domain-color);
+    border-color: var(--domain-color);
+  }
+  .service-checkbox svg { display: none; }
+  .service-row.checked .service-checkbox svg { display: block; }
+
+  .service-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    flex: 1;
+  }
+
+  .service-count { color: var(--text-muted); font-size: 0.8rem; font-family: 'Space Mono', monospace; }
+
+  .menu-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .btn-ghost {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 0.55rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.9rem;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .btn-ghost:hover { border-color: #475569; color: var(--text); }
+
+  .btn-primary {
+    margin-left: auto;
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    padding: 0.65rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: background 0.15s, opacity 0.15s;
+  }
+  .btn-primary:hover:not(:disabled) { background: #2563eb; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* -- Quiz -- */
+  .quiz-header { margin-bottom: 1.5rem; }
+  .quiz-domain-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .progress-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+  }
+  .progress-label { font-size: 0.85rem; color: var(--text-muted); font-family: 'Space Mono', monospace; white-space: nowrap; }
+  .progress-bar {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: var(--accent);
+    transition: width 0.3s ease, background 0.3s ease;
+  }
+
+  .q-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.25rem 0.65rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+  }
+
+  .q-text {
+    font-size: 1.15rem;
+    font-weight: 600;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+  }
+
+  .options-grid {
+    display: grid;
+    gap: 0.65rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .option-btn {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.85rem 1rem;
+    cursor: pointer;
+    text-align: left;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .option-btn:hover:not(:disabled) { border-color: #475569; background: var(--surface2); }
+  .option-btn:disabled { cursor: default; }
+
+  .option-letter {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    border-radius: 5px;
+    background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    margin-top: 1px;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .option-btn.correct {
+    border-color: var(--green);
+    background: var(--green-dim);
+  }
+  .option-btn.correct .option-letter {
+    background: var(--green);
+    color: #fff;
+  }
+  .option-btn.wrong {
+    border-color: var(--red);
+    background: var(--red-dim);
+  }
+  .option-btn.wrong .option-letter {
+    background: var(--red);
+    color: #fff;
+  }
+
+  .quiz-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 1rem;
+    min-height: 44px;
+  }
+  .feedback-text {
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+  .feedback-text.correct { color: var(--green); }
+  .feedback-text.wrong   { color: var(--red); }
+
+  .btn-next {
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    padding: 0.65rem 1.25rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background 0.15s;
+  }
+  .btn-next:hover { background: #2563eb; }
+
+  /* -- Results -- */
+  .results-score {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  .results-score .big { font-size: 3rem; font-weight: 700; font-family: 'Space Mono', monospace; }
+  .results-score .pct { font-size: 1.1rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+  .breakdown-title {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+  }
+
+  .breakdown-grid {
+    display: grid;
+    gap: 0.5rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .domain-breakdown-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-top: 0.5rem;
+  }
+  .domain-breakdown-header:first-child { margin-top: 0; }
+  .domain-breakdown-name {
+    flex: 1;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .breakdown-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.5rem 1rem 0.5rem 1.5rem;
+  }
+
+  .breakdown-score {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+  .breakdown-score.perfect { color: var(--green); }
+  .breakdown-score.partial { color: #f59e0b; }
+  .breakdown-score.zero    { color: var(--red); }
+
+  .breakdown-bar-wrap {
+    width: 80px;
+    height: 6px;
+    background: var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .breakdown-bar {
+    height: 100%;
+    border-radius: 99px;
+    background: #3b82f6;
+  }
+
+  .results-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  /* -- Explanation -- */
+  .explanation-box {
+    background: var(--surface2);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 10px 10px 0;
+    padding: 0.85rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: var(--text-muted);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .explanation-box.visible { opacity: 1; }
+  .explanation-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 0.35rem;
+  }
+
+  /* -- Keyboard hint -- */
+  .kbd-hint {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    margin-top: 1rem;
+  }
+  .kbd { display: inline-block; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-family: 'Space Mono', monospace; font-size: 0.7rem; }
+
+  .option-btn:focus-visible,
+  .btn-primary:focus-visible,
+  .btn-next:focus-visible,
+  .btn-ghost:focus-visible,
+  .service-row:focus-visible,
+  .domain-header:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- MENU -->
+  <div id="screen-menu">
+    <div class="header">
+      <h1>DOP-C02 Quiz</h1>
+      <p>Select domains and services to study</p>
+    </div>
+    <div class="menu-grid" id="domain-list"></div>
+    <div class="menu-actions">
+      <button class="btn-ghost" id="btn-toggle-all">Deselect All</button>
+      <button class="btn-primary" id="btn-start" disabled>Start Quiz</button>
+    </div>
+  </div>
+
+  <!-- QUIZ -->
+  <div id="screen-quiz" class="hidden">
+    <div class="quiz-header">
+      <div class="quiz-domain-label" id="quiz-domain-label"></div>
+      <div class="progress-row">
+        <span class="progress-label" id="progress-label">1 / 10</span>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      </div>
+      <span class="q-badge" id="q-badge">CodeCommit</span>
+      <div class="q-text" id="q-text" role="heading" aria-level="2"></div>
+    </div>
+    <div class="options-grid" id="options-grid"></div>
+    <div class="explanation-box" id="explanation-box">
+      <div class="explanation-label"></div>
+      <div class="explanation-body" aria-live="polite"></div>
+    </div>
+    <div class="quiz-footer">
+      <span class="feedback-text" id="feedback-text" aria-live="polite"></span>
+      <button class="btn-next hidden" id="btn-next">Next &rarr;</button>
+    </div>
+    <div class="kbd-hint">
+      <kbd class="kbd">1</kbd><kbd class="kbd">2</kbd><kbd class="kbd">3</kbd><kbd class="kbd">4</kbd> to select &nbsp;&middot;&nbsp;
+      <kbd class="kbd">Enter</kbd> / <kbd class="kbd">Space</kbd> to advance
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="screen-results" class="hidden">
+    <div class="header"><h1>Quiz Complete</h1></div>
+    <div class="results-score">
+      <div class="big" id="score-big"></div>
+      <div class="pct" id="score-pct"></div>
+    </div>
+    <div class="breakdown-title">Per-Domain Breakdown</div>
+    <div class="breakdown-grid" id="breakdown-grid"></div>
+    <div class="results-actions">
+      <button class="btn-ghost" id="btn-requiz-missed">Re-quiz Missed Questions</button>
+      <button class="btn-primary" id="btn-restart">&larr; Back to Menu</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============ DATA ============ -->
+<script id="quiz-data">
+const DOMAINS = {
+  1: { name: "SDLC Automation",    color: "#3282B8", bg: "rgba(50,130,184,0.15)" },
+  2: { name: "Config & IaC",       color: "#4ECDC4", bg: "rgba(78,205,196,0.15)" },
+  3: { name: "Resilience",         color: "#D64292", bg: "rgba(214,66,146,0.15)" },
+  4: { name: "Monitoring",         color: "#81B29A", bg: "rgba(129,178,154,0.15)" },
+  5: { name: "Incident Response",  color: "#E76F51", bg: "rgba(231,111,81,0.15)" },
+  6: { name: "Security",           color: "#EF233C", bg: "rgba(239,35,60,0.15)" },
+};
+
+const SERVICES = [
+  { id: "CodeCommit",                     domain: 1 },
+  { id: "CodePipeline",                   domain: 1 },
+  { id: "CodeBuild",                      domain: 1 },
+  { id: "CodeDeploy",                     domain: 1 },
+  { id: "CodeArtifact",                   domain: 1 },
+  { id: "SAM & CDK Pipelines",            domain: 1 },
+  { id: "Cross-Account & Multi-Region",   domain: 1 },
+  { id: "CodeGuru",                        domain: 1 },
+  { id: "EC2 Image Builder",              domain: 1 },
+  { id: "AWS Amplify",                     domain: 1 },
+  { id: "CloudFormation",                  domain: 2 },
+];
+
+const QUESTIONS = [
+  /* -- CodeCommit (7) -- */
+  {
+    domain: 1,
+    service: "CodeCommit",
+    q: "What encryption algorithm does CodeCommit use for repositories at rest?",
+    options: [
+      "AES-256 with a CodeCommit-managed key",
+      "AWS KMS (customer or AWS-managed CMK)",
+      "RSA-2048 applied at the object level",
+      "TLS 1.3 with per-repo certificates"
+    ],
+    answer: 1,
+    explanation: "CodeCommit integrates with AWS KMS to encrypt repository data at rest using an AWS-managed key by default, or a customer-managed CMK. TLS is used for in-transit encryption\u2014it is a separate concern from at-rest encryption."
+  },
+  {
+    domain: 1,
+    service: "CodeCommit",
+    q: "Which branching strategy involves committing directly to `main` and using feature flags instead of long-lived branches?",
+    options: [
+      "GitFlow",
+      "GitHub Flow",
+      "Trunk-based development",
+      "Release branching"
+    ],
+    answer: 2,
+    explanation: "Trunk-based development means developers commit small, frequent changes directly to `main` (the trunk) and use feature flags to hide incomplete work, avoiding the integration pain of long-lived feature branches."
+  },
+  {
+    domain: 1,
+    service: "CodeCommit",
+    q: "CodeCommit repository triggers can invoke which two target types?",
+    options: [
+      "SQS queues and DynamoDB streams",
+      "SNS topics and Lambda functions",
+      "EventBridge rules and Step Functions",
+      "CodePipeline stages and CodeBuild projects"
+    ],
+    answer: 1,
+    explanation: "CodeCommit repository triggers natively support two target types: SNS topics (for fan-out notifications) and Lambda functions (for custom automation). EventBridge events are separate from repository triggers and configured differently."
+  },
+  {
+    domain: 1,
+    service: "CodeCommit",
+    q: "What is the correct mechanism to prevent direct pushes to a protected branch in CodeCommit?",
+    options: [
+      "Enable 'branch protection' in repository settings",
+      "Use a pre-receive hook in the CodeCommit console",
+      "SCPs and IAM policies (CodeCommit has no native push-blocking feature)",
+      "Configure a CodePipeline approval action on the branch"
+    ],
+    answer: 2,
+    explanation: "CodeCommit has no native branch protection UI. To block direct pushes you must use IAM policies that deny `codecommit:GitPush` on specific branch refs, or SCPs to enforce this org-wide. Pre-receive hooks and branch protection settings don't exist in CodeCommit."
+  },
+  {
+    domain: 1,
+    service: "CodeCommit",
+    q: "When using CodeCommit as a CodePipeline source, which detection method is recommended over polling?",
+    options: [
+      "Webhook",
+      "Periodic polling every 1 minute",
+      "EventBridge rule on repository state change",
+      "SNS notification to CodePipeline"
+    ],
+    answer: 2,
+    explanation: "AWS recommends an EventBridge rule that triggers on CodeCommit repository state changes. EventBridge delivers events near-instantly and avoids the up-to-1-minute latency of periodic polling, which also wastes API calls."
+  },
+  {
+    domain: 1,
+    service: "CodeCommit",
+    q: "CodeCommit approval rule templates define approvers using which format?",
+    options: [
+      "Email addresses of IAM users",
+      "IAM principals: users, roles, or groups",
+      "GitHub-style CODEOWNERS file entries",
+      "LDAP group distinguished names"
+    ],
+    answer: 1,
+    explanation: "CodeCommit approval rule templates reference approvers using IAM principal ARNs\u2014users, roles, or groups. Email addresses, CODEOWNERS files, and LDAP groups are not valid formats for CodeCommit approval rules."
+  },
+  {
+    domain: 1,
+    service: "CodeCommit",
+    q: "What is the correct approach for granting a developer in Account B read-only access to a CodeCommit repository in Account A?",
+    options: [
+      "Share the HTTPS clone URL; IAM credentials are global",
+      "Create a CodeCommit mirror in Account B",
+      "Have the developer assume a cross-account IAM role in Account A",
+      "Enable VPC peering and use SSH keys"
+    ],
+    answer: 2,
+    explanation: "Cross-account CodeCommit access is granted via a cross-account IAM role in Account A that the developer in Account B assumes. They then use temporary credentials from that role to clone/pull the repository. IAM credentials are account-scoped, not global."
+  },
+
+  /* -- CodePipeline (8) -- */
+  {
+    domain: 1,
+    service: "CodePipeline",
+    q: "How does CodePipeline store and pass artifacts between stages?",
+    options: [
+      "ECR images tagged per pipeline execution",
+      "S3 bucket (ZIP files), optionally encrypted with KMS",
+      "EFS share mounted by each action provider",
+      "DynamoDB item per artifact with S3 reference"
+    ],
+    answer: 1,
+    explanation: "CodePipeline stores all inter-stage artifacts as ZIP files in a designated S3 artifact bucket. You can encrypt this bucket with a KMS key\u2014required for cross-account pipelines so target account principals can decrypt the artifacts."
+  },
+  {
+    domain: 1,
+    service: "CodePipeline",
+    q: "Which CodePipeline V2 feature lets you start a pipeline only when changes occur in specific file paths or branches (e.g., only src/**)?",
+    options: [
+      "Stage conditions with file-path expressions",
+      "Pipeline triggers with glob-pattern filters on file paths and branches",
+      "EventBridge content filtering on CodeCommit push events",
+      "A Lambda Invoke action that checks changed files before proceeding"
+    ],
+    answer: 1,
+    explanation: "CodePipeline V2 introduced trigger filters that accept glob patterns (e.g., `src/**`, `*.tf`) on file paths and branches. The pipeline only starts when a push matches the patterns, avoiding spurious executions from unrelated changes."
+  },
+  {
+    domain: 1,
+    service: "CodePipeline",
+    q: "Which action type pauses a pipeline execution and can send a notification for human review?",
+    options: [
+      "Invoke (Lambda)",
+      "Deploy (CloudFormation CHANGE_SET_EXECUTE)",
+      "Manual Approval",
+      "Test (CodeBuild)"
+    ],
+    answer: 2,
+    explanation: "The Manual Approval action halts the pipeline and optionally sends an SNS notification to reviewers. The pipeline only resumes once an authorized user approves or rejects it in the console or via the API, making it ideal as a gate before production deployments."
+  },
+  {
+    domain: 1,
+    service: "CodePipeline",
+    q: "CodePipeline supports three pipeline execution modes. Which mode cancels the in-progress execution when a newer one arrives?",
+    options: [
+      "PARALLEL",
+      "QUEUED",
+      "SEQUENTIAL",
+      "SUPERSEDED"
+    ],
+    answer: 3,
+    explanation: "SUPERSEDED mode cancels the currently in-progress execution when a newer commit triggers the pipeline, ensuring the latest code always runs without waiting. QUEUED serializes executions; PARALLEL runs all concurrently."
+  },
+  {
+    domain: 1,
+    service: "CodePipeline",
+    q: "Which two action providers does the CodePipeline 'Invoke' action category support?",
+    options: [
+      "CodeBuild and CodeDeploy",
+      "Lambda and Step Functions",
+      "ECS and Fargate",
+      "SNS and SQS"
+    ],
+    answer: 1,
+    explanation: "The Invoke action category supports Lambda functions and Step Functions state machines. CodeBuild belongs to the Build category and CodeDeploy to the Deploy category\u2014each has its own dedicated action category."
+  },
+  {
+    domain: 1,
+    service: "CodePipeline",
+    q: "What is a CodePipeline webhook used for?",
+    options: [
+      "Sending notifications when a stage fails",
+      "Allowing external systems to trigger a pipeline via an HTTP endpoint",
+      "Forwarding artifacts to an external S3 bucket",
+      "Polling a GitHub repo for changes every 30 seconds"
+    ],
+    answer: 1,
+    explanation: "A CodePipeline webhook exposes an HTTPS endpoint that external systems (e.g., GitHub, Bitbucket) can call to trigger a pipeline execution on push events, enabling event-driven CI/CD from external source control providers."
+  },
+  {
+    domain: 1,
+    service: "CodePipeline",
+    q: "What must you provision in each additional AWS Region when adding cross-region actions to a pipeline?",
+    options: [
+      "A CodePipeline pipeline replica",
+      "A separate S3 artifact bucket in that region",
+      "A Transit Gateway attachment",
+      "An IAM role with AmazonCodePipelineFullAccess"
+    ],
+    answer: 1,
+    explanation: "Cross-region actions require a pre-created S3 artifact bucket in each target region. CodePipeline automatically copies artifacts from the primary bucket to the regional bucket before executing the cross-region action."
+  },
+  {
+    domain: 1,
+    service: "CodePipeline",
+    q: "Which CloudFormation pipeline action creates a change set for review WITHOUT executing it?",
+    options: [
+      "EXECUTE_CHANGE_SET",
+      "UPDATE_STACK",
+      "CREATE_OR_REPLACE_CHANGE_SET",
+      "DEPLOY_STACK_SET"
+    ],
+    answer: 2,
+    explanation: "CREATE_OR_REPLACE_CHANGE_SET computes and stores what CloudFormation would change without applying it. This allows a Manual Approval step before EXECUTE_CHANGE_SET actually applies the changes to the stack."
+  },
+
+  /* -- CodeBuild (7) -- */
+  {
+    domain: 1,
+    service: "CodeBuild",
+    q: "What file does CodeBuild look for by default to determine build phases and commands?",
+    options: [
+      "Dockerfile",
+      ".buildconfig.json",
+      "buildspec.yml",
+      "pipeline.yaml"
+    ],
+    answer: 2,
+    explanation: "CodeBuild looks for `buildspec.yml` in the source root by default. This YAML file defines build phases (install, pre_build, build, post_build), commands, environment variables, artifacts, and cache settings."
+  },
+  {
+    domain: 1,
+    service: "CodeBuild",
+    q: "To run Docker commands (docker build, docker push) inside a CodeBuild project, which setting must be enabled?",
+    options: [
+      "Enhanced networking mode",
+      "Privileged mode",
+      "Docker daemon flag in buildspec",
+      "VPC attachment with NAT"
+    ],
+    answer: 1,
+    explanation: "Docker requires privileged access to the host kernel's namespaces and cgroups. Enabling privileged mode in the CodeBuild environment configuration grants the build container those capabilities, allowing the Docker daemon to run."
+  },
+  {
+    domain: 1,
+    service: "CodeBuild",
+    q: "A CodeBuild project is placed in a VPC. How does it reach public internet endpoints (e.g., npm registry)?",
+    options: [
+      "Attach an Internet Gateway to the VPC",
+      "Use a public subnet with an auto-assigned public IP",
+      "Route outbound traffic through a NAT Gateway",
+      "Enable VPC endpoint for CodeBuild"
+    ],
+    answer: 2,
+    explanation: "When placed in a VPC, CodeBuild instances run in private subnets and have no direct internet access. A NAT Gateway in a public subnet provides outbound internet access for private subnet resources without exposing them to inbound traffic."
+  },
+  {
+    domain: 1,
+    service: "CodeBuild",
+    q: "Which CodeBuild local cache type specifically accelerates Docker image layer reuse between builds?",
+    options: [
+      "LOCAL_SOURCE_CACHE",
+      "LOCAL_CUSTOM_CACHE",
+      "LOCAL_DOCKER_LAYER_CACHE",
+      "LOCAL_ARTIFACT_CACHE"
+    ],
+    answer: 2,
+    explanation: "LOCAL_DOCKER_LAYER_CACHE stores Docker image layers on the build host between runs. Subsequent builds that use the same base image skip re-downloading unchanged layers, significantly reducing build time for Docker-heavy workflows."
+  },
+  {
+    domain: 1,
+    service: "CodeBuild",
+    q: "What test report format does CodeBuild natively parse for the Test Reports feature?",
+    options: [
+      "TAP (Test Anything Protocol)",
+      "JUnit XML (and Cucumber XML)",
+      "xUnit .NET format only",
+      "JSON from pytest-json-report"
+    ],
+    answer: 1,
+    explanation: "CodeBuild Test Reports natively parse JUnit XML and Cucumber JSON/XML files, displaying pass/fail counts and test durations in the console. Other formats must be converted before CodeBuild can process them."
+  },
+  {
+    domain: 1,
+    service: "CodeBuild",
+    q: "What does enabling secondary sources in a CodeBuild project allow?",
+    options: [
+      "Triggering two build projects in parallel",
+      "Pulling from up to 12 additional repositories during a build",
+      "Running builds across two Availability Zones simultaneously",
+      "Caching artifacts to a secondary S3 bucket"
+    ],
+    answer: 1,
+    explanation: "Secondary sources allow a CodeBuild project to clone up to 12 additional repositories during a single build, each mounted at a configurable path. This is useful for monorepos or builds that depend on shared library repositories."
+  },
+  {
+    domain: 1,
+    service: "CodeBuild",
+    q: "In buildspec.yml, under which block do you reference an AWS Secrets Manager secret by ARN?",
+    options: [
+      "env.variables",
+      "env.parameter-store",
+      "env.secrets-manager",
+      "phases.pre_build.secrets"
+    ],
+    answer: 2,
+    explanation: "The `env.secrets-manager` block in buildspec.yml maps environment variable names to Secrets Manager secret ARNs or names (with optional JSON key). CodeBuild fetches and injects the secret value before any build phase runs."
+  },
+
+  /* -- CodeDeploy (8) -- */
+  {
+    domain: 1,
+    service: "CodeDeploy",
+    q: "What file does CodeDeploy require in the application bundle to define deployment lifecycle hooks and file mappings?",
+    options: [
+      "deployspec.yml",
+      "buildspec.yml",
+      "appspec.yml",
+      "taskdef.json"
+    ],
+    answer: 2,
+    explanation: "`appspec.yml` (Application Specification) is required in the deployment bundle root. It maps source files to destination paths on the instance and defines lifecycle event hooks (scripts to run at each deployment phase)."
+  },
+  {
+    domain: 1,
+    service: "CodeDeploy",
+    q: "What is the correct order of lifecycle event hooks for an EC2 in-place deployment?",
+    options: [
+      "BeforeInstall \u2192 DownloadBundle \u2192 Install \u2192 ApplicationStart \u2192 ValidateService",
+      "ApplicationStop \u2192 DownloadBundle \u2192 BeforeInstall \u2192 Install \u2192 AfterInstall \u2192 ApplicationStart \u2192 ValidateService",
+      "DownloadBundle \u2192 BeforeInstall \u2192 AfterInstall \u2192 ApplicationStart \u2192 ValidateService",
+      "ApplicationStop \u2192 BeforeInstall \u2192 Install \u2192 AfterInstall \u2192 ApplicationStart"
+    ],
+    answer: 1,
+    explanation: "The correct EC2 in-place order is: ApplicationStop \u2192 DownloadBundle \u2192 BeforeInstall \u2192 Install \u2192 AfterInstall \u2192 ApplicationStart \u2192 ValidateService. The agent first stops the old app, then downloads and installs the new revision, and finally validates it."
+  },
+  {
+    domain: 1,
+    service: "CodeDeploy",
+    q: "When CodeDeploy performs a traffic-shifting Lambda deployment, what does it actually manipulate to move traffic from the old version to the new one?",
+    options: [
+      "The Lambda function's reserved concurrency allocation",
+      "The alias routing weights between two function versions",
+      "The API Gateway stage variable pointing to the function",
+      "The Lambda layer version attached to each function"
+    ],
+    answer: 1,
+    explanation: "CodeDeploy shifts Lambda traffic by updating the weighted routing on a Lambda alias\u2014gradually moving traffic from the old version to the new one. This enables canary and linear traffic shifting strategies without changing the invoking code."
+  },
+  {
+    domain: 1,
+    service: "CodeDeploy",
+    q: "What two events can automatically trigger a CodeDeploy rollback?",
+    options: [
+      "Deployment timeout and low ELB throughput",
+      "Deployment failure or CloudWatch Alarm breach",
+      "SNS notification and manual pipeline stop",
+      "EC2 instance health check failure and ASG scale-in"
+    ],
+    answer: 1,
+    explanation: "CodeDeploy can automatically roll back when a deployment fails (e.g., a lifecycle hook script exits non-zero) or when a configured CloudWatch Alarm enters ALARM state during or after deployment, indicating the new version is degraded."
+  },
+  {
+    domain: 1,
+    service: "CodeDeploy",
+    q: "In a Blue/Green EC2 deployment, which AWS resource routes traffic between the blue and green environments?",
+    options: [
+      "Route 53 weighted routing policy",
+      "CloudFront origin group failover",
+      "ALB or NLB target group switching",
+      "AWS Global Accelerator endpoint group"
+    ],
+    answer: 2,
+    explanation: "CodeDeploy Blue/Green on EC2 uses an ALB or NLB to switch traffic. It registers the green (new) instances with the load balancer target group and deregisters the blue (old) ones, enabling fast cutover without DNS changes."
+  },
+  {
+    domain: 1,
+    service: "CodeDeploy",
+    q: "Unlike EC2 deployments that use shell scripts, what technology implements ECS deployment lifecycle hooks?",
+    options: [
+      "AWS Systems Manager Run Command scripts",
+      "Lambda functions",
+      "ECS task definition overrides",
+      "Docker ENTRYPOINT scripts"
+    ],
+    answer: 1,
+    explanation: "ECS deployment lifecycle hooks (BeforeInstall, AfterInstall, AfterAllowTestTraffic, BeforeAllowTraffic, AfterAllowTraffic) invoke Lambda functions. There's no instance to run shell scripts on, so Lambda provides the hook execution environment."
+  },
+  {
+    domain: 1,
+    service: "CodeDeploy",
+    q: "The CodeDeploy predefined Canary10Percent* deployment configurations deploy to what percentage of instances (or traffic weight) first?",
+    options: [
+      "25% first, 75% after",
+      "50% first, 50% after",
+      "10% first, 90% after",
+      "1% first, 99% after"
+    ],
+    answer: 2,
+    explanation: "The predefined Canary10Percent* configurations deploy to 10% of instances (or traffic weight) first, wait for a configurable interval, then shift the remaining 90%. Note: the percentage is configurable in custom deployment configurations. Linear deployments move in equal increments on a schedule instead."
+  },
+  {
+    domain: 1,
+    service: "CodeDeploy",
+    q: "A deployment fails at the AllowTraffic lifecycle event with no error in the application logs. What is the most likely cause?",
+    options: [
+      "The CodeDeploy agent is not running on the instance",
+      "The appspec.yml file is missing the AllowTraffic hook",
+      "Misconfigured ELB health checks causing the target to fail",
+      "The IAM role lacks s3:GetObject on the artifact bucket"
+    ],
+    answer: 2,
+    explanation: "AllowTraffic is controlled by the ELB health check, not by appspec scripts\u2014so there's no application log entry when it fails. If the health check port, path, or threshold is misconfigured, the load balancer never marks the target healthy and the deployment stalls."
+  },
+
+  /* -- CodeArtifact (6) -- */
+  {
+    domain: 1,
+    service: "CodeArtifact",
+    q: "What is the maximum number of upstream repositories a single CodeArtifact repository can have?",
+    options: ["5", "10", "20", "Unlimited"],
+    answer: 1,
+    explanation: "A single CodeArtifact repository can have up to 10 upstream repositories. Package resolution cascades through the upstream chain until the package is found or all upstreams (including external connections) are exhausted."
+  },
+  {
+    domain: 1,
+    service: "CodeArtifact",
+    q: "What CodeArtifact configuration links a repository to a public package registry such as npmjs.com?",
+    options: [
+      "Upstream repository pointing to a public domain",
+      "External connection",
+      "Public gateway endpoint",
+      "Cross-domain replication rule"
+    ],
+    answer: 1,
+    explanation: "An external connection links a CodeArtifact repository to a supported public package registry (npmjs, PyPI, Maven Central, NuGet, etc.), enabling fetch-and-cache of packages on first request."
+  },
+  {
+    domain: 1,
+    service: "CodeArtifact",
+    q: "What is a CodeArtifact domain?",
+    options: [
+      "A DNS alias for the CodeArtifact package endpoint",
+      "A logical grouping of repositories that can span multiple accounts",
+      "A per-package namespace within a single repository",
+      "An IAM permission boundary for CodeArtifact access"
+    ],
+    answer: 1,
+    explanation: "A CodeArtifact domain is a logical container that groups repositories, potentially across multiple AWS accounts. It provides a single administrative boundary for resource policies, KMS encryption, and cross-account package sharing."
+  },
+  {
+    domain: 1,
+    service: "CodeArtifact",
+    q: "How many external connections (e.g., to npmjs.com) can a single CodeArtifact repository have?",
+    options: ["1", "3", "5", "10"],
+    answer: 0,
+    explanation: "Each CodeArtifact repository supports exactly one external connection. To proxy multiple public registries, create separate repositories (one per registry) and chain them as upstreams behind a single gateway repository."
+  },
+  {
+    domain: 1,
+    service: "CodeArtifact",
+    q: "How is cross-account access to a CodeArtifact repository granted?",
+    options: [
+      "VPC endpoint policy allowing the remote account's VPC",
+      "Resource-based policy on the repository",
+      "AWS RAM share of the CodeArtifact domain",
+      "IAM identity federation with the target account"
+    ],
+    answer: 1,
+    explanation: "Cross-account access to CodeArtifact is granted via a resource-based policy attached to the repository or domain, allowing principals from other accounts to perform specific actions like reading packages."
+  },
+  {
+    domain: 1,
+    service: "CodeArtifact",
+    q: "Which EventBridge event type does CodeArtifact publish when a new package version is added?",
+    options: [
+      "aws.codeartifact > PackageVersionApproved",
+      "aws.codeartifact > PackageVersionStateChange",
+      "aws.codeartifact > RepositorySynced",
+      "aws.codeartifact > DomainPackageAdded"
+    ],
+    answer: 1,
+    explanation: "CodeArtifact publishes `PackageVersionStateChange` events to EventBridge when a package version's status changes (e.g., Published, Unfinished, Archived, Deleted). EventBridge rules can trigger downstream automation like security scanning or pipeline promotion."
+  },
+
+  /* -- SAM & CDK Pipelines (5) -- */
+  {
+    domain: 1,
+    service: "SAM & CDK Pipelines",
+    q: "Which SAM CLI command both packages the application and deploys it to CloudFormation in a single step?",
+    options: [
+      "sam package && sam deploy (two commands required)",
+      "sam build",
+      "sam deploy",
+      "sam publish"
+    ],
+    answer: 2,
+    explanation: "`sam deploy` handles both packaging (uploading local artifacts like Lambda code to S3) and deployment (creating/updating the CloudFormation stack) in one command. `sam package` only packages without deploying."
+  },
+  {
+    domain: 1,
+    service: "SAM & CDK Pipelines",
+    q: "After running `sam deploy --guided`, what file is written to store deployment configuration for future runs?",
+    options: [
+      "samconfig.toml",
+      ".aws-sam/build.toml",
+      "template.config.json",
+      "cdk.context.json"
+    ],
+    answer: 0,
+    explanation: "`sam deploy --guided` prompts for stack name, region, S3 bucket, capabilities, and other parameters, then saves them to `samconfig.toml`. Subsequent `sam deploy` runs read this file automatically, skipping the interactive prompts."
+  },
+  {
+    domain: 1,
+    service: "SAM & CDK Pipelines",
+    q: "What property makes CDK Pipelines 'self-mutating'?",
+    options: [
+      "It rebuilds the CDK app from source on every run",
+      "A SelfMutate stage that updates the pipeline definition before deploying the application",
+      "CloudFormation drift detection runs before each stage",
+      "The pipeline re-synthesizes the CDK stack on each commit"
+    ],
+    answer: 1,
+    explanation: "CDK Pipelines includes a SelfMutate stage early in the pipeline that runs `cdk deploy` on the pipeline stack itself. Adding a new stage to your CDK code automatically updates the pipeline on the next run\u2014no manual pipeline update needed."
+  },
+  {
+    domain: 1,
+    service: "SAM & CDK Pipelines",
+    q: "Which CDK Pipelines construct allows multiple deployment stages to run in parallel across accounts or regions?",
+    options: [
+      "StageGroup",
+      "ParallelDeployment",
+      "Wave",
+      "ConcurrentStage"
+    ],
+    answer: 2,
+    explanation: "A `Wave` in CDK Pipelines groups multiple `Stage` deployments to run concurrently. Stages within the same wave deploy in parallel; waves themselves execute sequentially, enabling controlled multi-account and multi-region rollouts."
+  },
+  {
+    domain: 1,
+    service: "SAM & CDK Pipelines",
+    q: "What command must be run once in each target account before CDK cross-account deployments can work?",
+    options: [
+      "cdk deploy --trust <pipeline-account-id>",
+      "cdk bootstrap --trust <tooling-account-id>",
+      "aws sts assume-role --role-arn <cdk-role>",
+      "cdk synth --context cross-account=true"
+    ],
+    answer: 1,
+    explanation: "`cdk bootstrap --trust <tooling-account-id>` creates the CDK bootstrap stack in the target account and configures a trust policy so the tooling account's pipeline role can assume cross-account deployment roles. Without this, deployments fail with access denied."
+  },
+
+  /* -- Cross-Account & Multi-Region (5) -- */
+  {
+    domain: 1,
+    service: "Cross-Account & Multi-Region",
+    q: "In a cross-account CodePipeline pattern, which account hosts the pipeline infrastructure?",
+    options: [
+      "The production target account",
+      "The development account where code is committed",
+      "A dedicated tooling (pipeline) account",
+      "The AWS Organizations management account"
+    ],
+    answer: 2,
+    explanation: "Best practice is to host the pipeline in a dedicated tooling account, isolating CI/CD infrastructure from development and production accounts. The pipeline's IAM role then assumes cross-account deployment roles in target accounts."
+  },
+  {
+    domain: 1,
+    service: "Cross-Account & Multi-Region",
+    q: "For a cross-account CodePipeline to deploy artifacts to a target account, what must the KMS key policy include?",
+    options: [
+      "Allow CodePipeline to self-sign artifacts before delivery",
+      "Grant decrypt permissions to the target account's principals",
+      "Allow the target account to generate new data keys",
+      "Enable automatic key rotation in the target account"
+    ],
+    answer: 1,
+    explanation: "The KMS key encrypting the S3 artifact bucket must grant `kms:Decrypt` (and `kms:DescribeKey`) to the target account's deployment role. Without this, the cross-account role cannot read the artifact ZIP files."
+  },
+  {
+    domain: 1,
+    service: "Cross-Account & Multi-Region",
+    q: "The cross-account IAM role in the target account needs permissions for which set of services to support a CodePipeline deployment?",
+    options: [
+      "Only IAM and CloudFormation",
+      "CodeDeploy, CloudFormation, S3 (read), and KMS (decrypt)",
+      "EC2, ECS, Lambda, and S3 (write)",
+      "CodePipeline, CodeBuild, and CloudWatch Logs"
+    ],
+    answer: 1,
+    explanation: "The cross-account deployment role needs to read artifacts from S3 (s3:GetObject + kms:Decrypt) and execute the deployment action\u2014typically CloudFormation or CodeDeploy. CodePipeline itself stays in the tooling account and orchestrates via the assumed role."
+  },
+  {
+    domain: 1,
+    service: "Cross-Account & Multi-Region",
+    q: "What does CodePipeline do automatically to support cross-region actions that deploy to a different AWS Region?",
+    options: [
+      "Replicates the pipeline definition to the target region",
+      "Creates an ECR mirror in the target region",
+      "Replicates artifacts to an S3 bucket in the target region (one bucket required per region)",
+      "Provisions a VPN connection between regions"
+    ],
+    answer: 2,
+    explanation: "For cross-region actions, CodePipeline automatically copies artifacts from the primary artifact bucket to the per-region artifact bucket you pre-create. The action provider in the target region then reads from the regional bucket."
+  },
+  {
+    domain: 1,
+    service: "Cross-Account & Multi-Region",
+    q: "What property do you set on a CodePipeline action to target a different AWS Region?",
+    options: [
+      "CrossRegion: true",
+      "TargetRegion",
+      "Region",
+      "DeployRegion"
+    ],
+    answer: 2,
+    explanation: "You set the `region` property on a CodePipeline action configuration to specify a different target region. CodePipeline handles artifact replication to the regional bucket automatically before executing the action."
+  },
+
+  /* -- CodeGuru (5) -- */
+  {
+    domain: 1,
+    service: "CodeGuru",
+    q: "Which programming languages does CodeGuru Reviewer support for automated code analysis?",
+    options: [
+      "JavaScript and TypeScript",
+      "Java and Python",
+      "Go and Ruby",
+      "C# and Java"
+    ],
+    answer: 1,
+    explanation: "CodeGuru Reviewer supports Java and Python. It uses ML models trained on millions of code reviews to detect issues like resource leaks, concurrency bugs, input validation problems, and security vulnerabilities in these two languages."
+  },
+  {
+    domain: 1,
+    service: "CodeGuru",
+    q: "What does the CodeGuru Reviewer Secrets Detector feature do?",
+    options: [
+      "Scans IAM policies for overly permissive statements",
+      "Identifies hardcoded credentials in code and recommends moving them to Secrets Manager",
+      "Monitors CloudTrail logs for secret access anomalies",
+      "Rotates database passwords stored in Parameter Store"
+    ],
+    answer: 1,
+    explanation: "The Secrets Detector scans code for hardcoded credentials\u2014API keys, passwords, database connection strings\u2014and recommends moving them to AWS Secrets Manager. This prevents accidental credential exposure in source control."
+  },
+  {
+    domain: 1,
+    service: "CodeGuru",
+    q: "CodeGuru Reviewer can automatically review pull requests on which source control platforms?",
+    options: [
+      "GitHub, Bitbucket, and CodeCommit",
+      "GitLab, Azure DevOps, and CodeCommit",
+      "GitHub Enterprise only",
+      "CodeCommit only"
+    ],
+    answer: 0,
+    explanation: "CodeGuru Reviewer integrates with GitHub (including GitHub Enterprise), Bitbucket, and AWS CodeCommit for automatic pull request reviews. GitLab and Azure DevOps are not natively supported."
+  },
+  {
+    domain: 1,
+    service: "CodeGuru",
+    q: "In CodeGuru Profiler, what does the heap summary visualization display?",
+    options: [
+      "Total RAM consumed by the EC2 instance over time",
+      "Object allocation patterns showing which types consume heap memory",
+      "GC pause durations and frequency per JVM thread",
+      "Network socket buffer utilization"
+    ],
+    answer: 1,
+    explanation: "The heap summary shows which object types are consuming heap memory and their allocation rates over time, helping identify memory leaks and inefficient object creation patterns. It's not a raw RAM meter or GC log."
+  },
+  {
+    domain: 1,
+    service: "CodeGuru",
+    q: "How can you add CodeGuru Profiler instrumentation to a Lambda function without modifying application code?",
+    options: [
+      "Enable X-Ray active tracing \u2014 it integrates automatically",
+      "Set the CODEGURU_PROFILER_ENABLED environment variable",
+      "Attach the CodeGuru Profiler agent as a Lambda Layer",
+      "Use a Lambda@Edge function to inject the profiler"
+    ],
+    answer: 2,
+    explanation: "The CodeGuru Profiler agent is distributed as a Lambda Layer. Attach the layer and set the required environment variables (profiler group name, region)\u2014no application code changes required. X-Ray is a separate tracing service."
+  },
+
+  /* -- EC2 Image Builder (5) -- */
+  {
+    domain: 1,
+    service: "EC2 Image Builder",
+    q: "What is the cost model for using EC2 Image Builder itself?",
+    options: [
+      "$0.01 per image pipeline execution",
+      "Charged per component execution minute",
+      "Free; you only pay for the underlying EC2 instances and S3 storage used during builds",
+      "Included in the EC2 AMI storage cost"
+    ],
+    answer: 2,
+    explanation: "EC2 Image Builder has no service charge. You pay only for the EC2 instances launched during build and test phases, plus S3 storage for AMI snapshots and logs. The orchestration itself is free."
+  },
+  {
+    domain: 1,
+    service: "EC2 Image Builder",
+    q: "How do you share an AMI produced by EC2 Image Builder with other AWS accounts?",
+    options: [
+      "Configure a CodePipeline stage to copy the AMI cross-account",
+      "Use AWS Resource Access Manager (RAM) to share the image recipe",
+      "Modify the AMI launch permissions to add the target account IDs",
+      "Enable AMI sharing in the EC2 Image Builder distribution settings using AWS RAM"
+    ],
+    answer: 3,
+    explanation: "AMI distribution is configured in the Image Builder pipeline's distribution settings, where you specify target accounts and regions. AWS RAM is used under the hood to share the AMI, making it launchable in target accounts without copying."
+  },
+  {
+    domain: 1,
+    service: "EC2 Image Builder",
+    q: "Which AWS service feature is commonly used to store and reference the latest AMI ID produced by Image Builder for use in downstream pipelines?",
+    options: [
+      "AWS Config rule evaluation result",
+      "CloudFormation Exports",
+      "SSM Parameter Store (using a StringParameter with the AMI ID)",
+      "EventBridge event archive"
+    ],
+    answer: 2,
+    explanation: "Image Builder can automatically publish the new AMI ID to an SSM Parameter Store parameter after a successful build. CloudFormation stacks and pipelines can reference this parameter to always use the latest golden AMI without hardcoding IDs."
+  },
+  {
+    domain: 1,
+    service: "EC2 Image Builder",
+    q: "After the builder EC2 instance finishes applying components, what does Image Builder launch next in the pipeline?",
+    options: [
+      "A Lambda function to run unit tests against the AMI",
+      "A test EC2 instance that runs validation test components",
+      "An ECS task executing a container-based test suite",
+      "A CodeBuild project with the test buildspec"
+    ],
+    answer: 1,
+    explanation: "After the builder instance creates the AMI, Image Builder launches a separate test instance from that exact AMI and runs test components (shell scripts or AWSTOE documents). Only after tests pass is the AMI marked available for distribution."
+  },
+  {
+    domain: 1,
+    service: "EC2 Image Builder",
+    q: "In a pattern where a new AMI triggers pipeline execution, what service notifies a Lambda function when Image Builder finishes?",
+    options: [
+      "CloudTrail event forwarded to Lambda directly",
+      "EventBridge rule on Image Builder state change",
+      "SNS notification published by Image Builder on completion",
+      "SQS queue polled by a Lambda trigger"
+    ],
+    answer: 2,
+    explanation: "Image Builder publishes state-change events to EventBridge (e.g., IMAGE_STATE_CHANGED with state AVAILABLE). An EventBridge rule can trigger a Lambda function to kick off downstream actions like updating Launch Templates or starting a CodePipeline."
+  },
+
+  /* -- AWS Amplify (5) -- */
+  {
+    domain: 1,
+    service: "AWS Amplify",
+    q: "Which AWS CDN service does Amplify Console use to globally distribute frontend applications?",
+    options: [
+      "AWS Global Accelerator",
+      "CloudFront",
+      "API Gateway Edge-Optimized endpoint",
+      "Elastic Load Balancing with geo-routing"
+    ],
+    answer: 1,
+    explanation: "Amplify Hosting distributes frontend assets globally through CloudFront, AWS's CDN. This provides low-latency delivery from edge locations worldwide and includes automatic HTTPS via ACM certificates."
+  },
+  {
+    domain: 1,
+    service: "AWS Amplify",
+    q: "When you connect a Git branch to an Amplify app, how many deployed environments does that branch get?",
+    options: [
+      "One per commit (each commit is a separate deployment URL)",
+      "One per branch (each branch maps to one environment)",
+      "One shared environment across all branches",
+      "Two: staging and production per branch"
+    ],
+    answer: 1,
+    explanation: "Each Git branch connected to Amplify gets its own deployed environment with a unique URL (e.g., `branch-name.app-id.amplifyapp.com`). This enables branch-based preview deployments for pull requests and feature branches."
+  },
+  {
+    domain: 1,
+    service: "AWS Amplify",
+    q: "Which Amplify component lets you provision backend AWS resources (Auth, API, Storage) without writing CloudFormation directly?",
+    options: [
+      "Amplify Studio visual designer",
+      "Amplify Hosting build settings",
+      "Amplify Backend (Amplify CLI)",
+      "AWS AppRunner with Amplify integration"
+    ],
+    answer: 2,
+    explanation: "The Amplify CLI (`amplify add auth`, `amplify add api`, etc.) provisions backend AWS resources through a category-based wizard, generating and deploying CloudFormation stacks under the hood without you writing raw CFN templates."
+  },
+  {
+    domain: 1,
+    service: "AWS Amplify",
+    q: "Which source control providers can Amplify Console connect to for automatic branch deployments?",
+    options: [
+      "GitHub and Bitbucket only",
+      "GitHub, CodeCommit, Bitbucket, GitLab, or manual ZIP upload",
+      "GitHub, GitLab, and Azure DevOps",
+      "Any Git provider via a webhook URL"
+    ],
+    answer: 1,
+    explanation: "Amplify Console supports connecting to GitHub, AWS CodeCommit, Bitbucket, and GitLab for automatic deployments. It also supports manual ZIP file uploads for providers not natively supported. Azure DevOps is not natively integrated."
+  },
+  {
+    domain: 1,
+    service: "AWS Amplify",
+    q: "When Amplify Backend provisions a GraphQL API, which AWS service powers it?",
+    options: [
+      "API Gateway HTTP API with Lambda resolvers",
+      "AppSync",
+      "API Gateway REST API with VTL mapping templates",
+      "EventBridge API Destinations"
+    ],
+    answer: 1,
+    explanation: "When you run `amplify add api` and choose GraphQL, Amplify provisions an AWS AppSync API with DynamoDB data sources and auto-generated resolvers. AppSync handles GraphQL queries, mutations, and real-time subscriptions."
+  },
+  /* -- CloudFormation (38) -- */
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "Which is the only required section in a CloudFormation template?",
+    options: [
+      "Parameters",
+      "Outputs",
+      "Resources",
+      "Mappings"
+    ],
+    answer: 2,
+    explanation: "The Resources section is the only mandatory section in a CloudFormation template. All other sections — Parameters, Mappings, Conditions, Outputs, Metadata, and Transform — are optional."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "What does AWS Infrastructure Composer provide for CloudFormation?",
+    options: [
+      "A CLI tool that validates templates against best practices",
+      "A visual drag-and-drop canvas for designing templates",
+      "An AI service that auto-generates templates from descriptions",
+      "A managed service that deploys templates across accounts"
+    ],
+    answer: 1,
+    explanation: "Infrastructure Composer (formerly Application Composer) provides a visual drag-and-drop canvas where you can design CloudFormation templates graphically. It generates and syncs the underlying YAML/JSON template in real time."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "What does `!Ref` return for most resources, compared to `!GetAtt`?",
+    options: [
+      "`Ref` returns the ARN; `GetAtt` returns the physical ID",
+      "`Ref` returns the physical resource ID; `GetAtt` returns a specific named attribute",
+      "`Ref` returns the logical ID; `GetAtt` returns the physical ID",
+      "They return the same value but `GetAtt` allows nested lookups"
+    ],
+    answer: 1,
+    explanation: "`!Ref` typically returns the physical ID of a resource (e.g., an EC2 instance ID or S3 bucket name). `!GetAtt` retrieves a specific attribute of the resource, such as `MyELB.DNSName` or `MyInstance.PrivateIp`."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "When should you use Mappings instead of Parameters in a CloudFormation template?",
+    options: [
+      "When values must be entered by the user at deploy time",
+      "When values are known in advance and fixed per key (e.g., AMI IDs per region)",
+      "When values need to be validated with AllowedPattern",
+      "When values are exported from another stack"
+    ],
+    answer: 1,
+    explanation: "Mappings are lookup tables for values known at authoring time that vary by key (e.g., region-specific AMI IDs). Parameters are for values that must be supplied or chosen by the user at deploy time. Use Mappings for fixed, predictable values; Parameters for user input."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "What does the `NoEcho` property do on a CloudFormation parameter?",
+    options: [
+      "Prevents the parameter from appearing in stack events and console output",
+      "Encrypts the parameter value at rest using KMS",
+      "Hides the parameter from the Outputs section",
+      "Prevents the parameter from being passed to nested stacks"
+    ],
+    answer: 0,
+    explanation: "`NoEcho: true` masks the parameter value with asterisks in the console, CLI output, and CloudTrail logs. It does NOT encrypt the value — it only prevents it from being displayed. For true secret management, use dynamic references to Secrets Manager or SSM SecureString."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "Which pseudo-parameter returns a value that effectively removes a property when used with `Fn::If`?",
+    options: [
+      "AWS::StackName",
+      "AWS::NoValue",
+      "AWS::AccountId",
+      "AWS::URLSuffix"
+    ],
+    answer: 1,
+    explanation: "`AWS::NoValue` is used with `Fn::If` to conditionally remove a property entirely from a resource definition. When the condition is false, returning `AWS::NoValue` tells CloudFormation to act as if the property was never specified."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "Which parameter constraint enforces a regular expression pattern on user input?",
+    options: [
+      "AllowedValues",
+      "ConstraintDescription",
+      "AllowedPattern",
+      "MaxLength"
+    ],
+    answer: 2,
+    explanation: "`AllowedPattern` accepts a regular expression that the parameter value must match. `AllowedValues` provides an explicit list of permitted values. `ConstraintDescription` only customizes the error message shown when validation fails."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "What happens when you try to delete a stack whose outputs are imported by another stack?",
+    options: [
+      "The importing stack's resources are automatically updated",
+      "The export is silently removed and the importing stack keeps the last known value",
+      "The deletion fails with an error",
+      "The importing stack enters UPDATE_ROLLBACK_FAILED state"
+    ],
+    answer: 2,
+    explanation: "CloudFormation prevents deletion of a stack if any of its exported outputs are currently imported by another stack. You must first remove the import references from all consuming stacks before deleting the exporting stack."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "What is the uniqueness scope for CloudFormation export names?",
+    options: [
+      "Unique per stack",
+      "Unique per account",
+      "Unique per region within the account",
+      "Globally unique across all AWS accounts"
+    ],
+    answer: 2,
+    explanation: "Export names must be unique within a given region in the same AWS account. Two stacks in the same account and region cannot use the same export name. Different regions can reuse the same export name."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "How do you conditionally set a resource property to one value or another in CloudFormation?",
+    options: [
+      "Use `Fn::Select` with a condition index",
+      "Use `Fn::If` referencing a condition name",
+      "Use `Condition:` directly inside the property",
+      "Use `Fn::Equals` inline in the property value"
+    ],
+    answer: 1,
+    explanation: "`Fn::If` takes a condition name and two values — it returns the first value if the condition is true, or the second if false. Conditions themselves are defined in the Conditions section using functions like `Fn::Equals`, but `Fn::If` is what applies them to property values."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "What is the maximum number of conditions that `Fn::And` and `Fn::Or` can evaluate?",
+    options: [
+      "2",
+      "5",
+      "10",
+      "Unlimited"
+    ],
+    answer: 2,
+    explanation: "`Fn::And` and `Fn::Or` accept between 2 and 10 conditions. If you need to evaluate more than 10, you must nest multiple `Fn::And` or `Fn::Or` calls."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "For complex string interpolation in CloudFormation, which function is preferred over `Fn::Join`?",
+    options: [
+      "Fn::Select",
+      "Fn::Sub",
+      "Fn::Split",
+      "Fn::Transform"
+    ],
+    answer: 1,
+    explanation: "`Fn::Sub` supports inline variable substitution with `${Variable}` syntax, making complex strings far more readable than chaining `Fn::Join` with `Ref` and `GetAtt` calls. It can reference parameters, resource attributes, and pseudo-parameters directly."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "What is `Fn::Base64` most commonly used for in CloudFormation templates?",
+    options: [
+      "Encrypting sensitive parameter values",
+      "Encoding EC2 UserData scripts",
+      "Hashing resource names for uniqueness",
+      "Converting binary files for S3 upload"
+    ],
+    answer: 1,
+    explanation: "EC2 UserData must be base64-encoded. `Fn::Base64` is almost always used to encode the UserData property of EC2 instances, typically wrapping a `Fn::Sub` or `Fn::Join` call that builds the startup script."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "What dependency relationship does `Fn::ImportValue` create between stacks?",
+    options: [
+      "A soft reference that resolves only at creation time",
+      "No dependency — values are copied at import time",
+      "A hard dependency that prevents the exporting stack from being deleted",
+      "A bidirectional dependency between both stacks"
+    ],
+    answer: 2,
+    explanation: "`Fn::ImportValue` creates a cross-stack dependency. The exporting stack cannot be deleted or have its export modified as long as any other stack imports that value. You must remove the import references first."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "Which API call is used to resolve a stack stuck in UPDATE_ROLLBACK_FAILED state?",
+    options: [
+      "cancel-update-stack",
+      "continue-update-rollback",
+      "rollback-stack",
+      "delete-stack with --force"
+    ],
+    answer: 1,
+    explanation: "`continue-update-rollback` resumes the rollback process after you've manually fixed whatever caused the original rollback to fail. You can optionally skip specific resources that cannot be restored using the `--resources-to-skip` parameter."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "What is the default behavior when a CloudFormation stack creation fails?",
+    options: [
+      "The stack enters CREATE_FAILED state and resources are left in place for debugging",
+      "All successfully created resources are rolled back and deleted automatically",
+      "Only the failed resource is removed; others remain",
+      "The stack pauses and waits for manual intervention"
+    ],
+    answer: 1,
+    explanation: "By default, CloudFormation performs an automatic rollback on creation failure — it deletes all resources that were successfully created and the stack enters ROLLBACK_COMPLETE state. You can disable this behavior to preserve resources for debugging."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "What IAM permission does a user need to assign a service role to CloudFormation?",
+    options: [
+      "iam:CreateRole",
+      "iam:PassRole",
+      "iam:AssumeRole",
+      "cloudformation:SetServiceRole"
+    ],
+    answer: 1,
+    explanation: "To assign a service role to CloudFormation, the user needs `iam:PassRole` permission for that specific role. This lets the user delegate permissions to CloudFormation without needing the underlying resource permissions themselves."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "What is the key benefit of using a CloudFormation service role?",
+    options: [
+      "It encrypts all stack resources automatically",
+      "It allows CloudFormation to deploy faster by parallelizing API calls",
+      "Users don't need direct permissions on the resources being created",
+      "It enables cross-account deployments without StackSets"
+    ],
+    answer: 2,
+    explanation: "With a service role, CloudFormation uses the role's permissions instead of the calling user's permissions to create, update, and delete resources. This means users only need permission to call CloudFormation and pass the role, not direct access to every resource type."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "When is `CAPABILITY_NAMED_IAM` required instead of `CAPABILITY_IAM`?",
+    options: [
+      "When creating any IAM resource",
+      "When IAM resources have custom/explicit names",
+      "When IAM policies reference other accounts",
+      "When creating IAM roles with admin privileges"
+    ],
+    answer: 1,
+    explanation: "`CAPABILITY_NAMED_IAM` is required when your template creates IAM resources with explicit custom names (e.g., `RoleName: MyCustomRole`). Named IAM resources pose a higher risk because they could replace existing resources. `CAPABILITY_IAM` suffices for IAM resources without explicit names."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "What error occurs when deploying a SAM template without acknowledging the required capabilities?",
+    options: [
+      "ValidationError",
+      "InsufficientCapabilitiesException",
+      "AccessDeniedException",
+      "TemplateValidationError"
+    ],
+    answer: 1,
+    explanation: "SAM templates include a `Transform` that creates IAM roles (e.g., Lambda execution roles). Deploying without `--capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND` raises `InsufficientCapabilitiesException`. The `CAPABILITY_AUTO_EXPAND` is needed for the SAM transform macro."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "Which AWS resource types support `DeletionPolicy: Snapshot`?",
+    options: [
+      "EC2, S3, and DynamoDB",
+      "RDS, EBS, ElastiCache, Redshift, and Neptune",
+      "All resource types that store data",
+      "Only RDS and DynamoDB"
+    ],
+    answer: 1,
+    explanation: "`DeletionPolicy: Snapshot` is supported by RDS DB instances/clusters, EBS volumes, ElastiCache clusters, Redshift clusters, and Neptune DB clusters. It creates a final snapshot before the resource is deleted. S3 and DynamoDB do not support this policy."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "Why might deleting a stack with an S3 bucket set to `DeletionPolicy: Delete` still fail?",
+    options: [
+      "S3 buckets cannot use DeletionPolicy: Delete",
+      "The bucket still has objects in it — CloudFormation cannot delete a non-empty bucket",
+      "The IAM role lacks s3:DeleteBucket permission",
+      "DeletionPolicy: Delete is the default and requires explicit confirmation"
+    ],
+    answer: 1,
+    explanation: "CloudFormation cannot delete an S3 bucket that still contains objects. Even with `DeletionPolicy: Delete`, you must first empty the bucket. A common pattern is using a custom resource backed by Lambda to empty the bucket before stack deletion."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "What is the default behavior once any stack policy is applied to a stack?",
+    options: [
+      "All resources are unprotected unless explicitly denied",
+      "All resources are protected (deny updates) unless explicitly allowed",
+      "Only IAM resources are protected by default",
+      "The policy has no effect until activated via a separate API call"
+    ],
+    answer: 1,
+    explanation: "Once a stack policy is set, the implicit default is to deny updates to ALL resources. You must explicitly allow updates for each resource or resource type you want to be updatable. This is a secure-by-default design."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "Stack policies protect resources against which type of operation?",
+    options: [
+      "Creation and deletion",
+      "Updates only",
+      "All stack operations including creation, updates, and deletion",
+      "Drift detection and remediation"
+    ],
+    answer: 1,
+    explanation: "Stack policies only apply to update operations. They do not prevent stack creation or deletion. To prevent stack deletion, use termination protection. To prevent resource deletion during updates, use `DeletionPolicy: Retain`."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "What can back a CloudFormation custom resource?",
+    options: [
+      "Lambda function or SNS topic",
+      "Step Functions state machine or SQS queue",
+      "Any AWS service with an API endpoint",
+      "Only Lambda functions"
+    ],
+    answer: 0,
+    explanation: "Custom resources can be backed by a Lambda function (`Custom::MyResource` or `AWS::CloudFormation::CustomResource` with a Lambda ARN) or an SNS topic. Lambda is far more common. CloudFormation sends lifecycle events (Create/Update/Delete) to the backing service."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "What is the classic exam scenario for using a CloudFormation custom resource?",
+    options: [
+      "Creating an EC2 instance with a specific AMI",
+      "Emptying an S3 bucket before stack deletion",
+      "Setting up VPC peering across regions",
+      "Deploying Lambda functions with dependencies"
+    ],
+    answer: 1,
+    explanation: "The most common exam scenario is using a custom resource backed by Lambda to empty an S3 bucket before deletion. Since CloudFormation cannot delete non-empty buckets, the custom resource's Delete handler invokes a Lambda that removes all objects first."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "What is the correct syntax for a dynamic reference to retrieve a Secrets Manager secret in a CloudFormation template?",
+    options: [
+      "`!Ref AWS::SecretsManager::MySecret`",
+      "`{{resolve:secretsmanager:my-secret:SecretString:password}}`",
+      "`Fn::ImportValue: secrets-manager-my-secret`",
+      "`!GetAtt SecretsManager.MySecret.Value`"
+    ],
+    answer: 1,
+    explanation: "Dynamic references use the `{{resolve:secretsmanager:secret-id:SecretString:json-key:version-stage:version-id}}` syntax. This resolves the secret value at deploy time without exposing it in the template. Only `SecretString` is supported (not `SecretBinary`)."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "What does setting `ManageMasterUserPassword: true` on an RDS instance in CloudFormation do?",
+    options: [
+      "Requires the password to be passed as a parameter",
+      "Disables password authentication in favor of IAM auth",
+      "Auto-generates the master password and manages it in Secrets Manager",
+      "Encrypts the password with a CloudFormation-managed KMS key"
+    ],
+    answer: 2,
+    explanation: "`ManageMasterUserPassword: true` tells RDS to auto-generate a strong master password and store/rotate it in Secrets Manager automatically. This is the recommended approach — it avoids hardcoding passwords in templates or parameters."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "What is the correct execution order for cfn-init configsets?",
+    options: [
+      "Commands, Files, Packages, Services, Users, Groups, Sources",
+      "Packages, Groups, Users, Sources, Files, Commands, Services",
+      "Files, Packages, Commands, Services, Sources, Users, Groups",
+      "The order is random and determined at runtime"
+    ],
+    answer: 1,
+    explanation: "cfn-init always processes config keys in this fixed order: Packages, Groups, Users, Sources, Files, Commands, Services. This ensures dependencies are met — e.g., packages are installed before config files are written and services are started last."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "What does cfn-signal do?",
+    options: [
+      "Triggers a stack update when instance configuration changes",
+      "Sends a success or failure signal back to CloudFormation for a WaitCondition or CreationPolicy",
+      "Signals other EC2 instances in the same Auto Scaling group",
+      "Notifies SNS when cfn-init completes"
+    ],
+    answer: 1,
+    explanation: "cfn-signal sends a signal (success or failure) back to CloudFormation to indicate whether instance bootstrapping completed successfully. It works with CreationPolicy or WaitCondition resources. If the signal isn't received within the timeout, the resource creation fails."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "What is the purpose of cfn-hup?",
+    options: [
+      "It monitors CloudFormation stack events and logs them locally",
+      "It detects metadata changes on the resource and re-runs cfn-init",
+      "It periodically signals CloudFormation that the instance is healthy",
+      "It cleans up temporary files created by cfn-init"
+    ],
+    answer: 1,
+    explanation: "cfn-hup is a daemon that runs on the EC2 instance and polls for changes to the resource metadata. When it detects a change (e.g., after a stack update), it can re-run cfn-init to apply the new configuration without replacing the instance."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "What is the key difference between nested stacks and cross-stack references?",
+    options: [
+      "Nested stacks are faster to deploy; cross-stack references are more reliable",
+      "Nested stacks share a lifecycle (tight coupling); cross-stack references allow independent lifecycles (value sharing)",
+      "Cross-stack references can only be used within the same account; nested stacks work cross-account",
+      "There is no functional difference — they are interchangeable approaches"
+    ],
+    answer: 1,
+    explanation: "Nested stacks are managed as part of the parent stack and share its lifecycle — they're best for reusable component templates. Cross-stack references (Export/ImportValue) let independent stacks share values while maintaining separate lifecycles — best for loosely coupled infrastructure."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "When is an explicit `DependsOn` attribute required on a CloudFormation resource?",
+    options: [
+      "Always — CloudFormation cannot infer dependencies",
+      "Only when resources are in different stacks",
+      "When a dependency exists that isn't expressed through `!Ref` or `!GetAtt`",
+      "Only for resources that take more than 5 minutes to create"
+    ],
+    answer: 2,
+    explanation: "CloudFormation automatically infers dependencies when you use `!Ref` or `!GetAtt` between resources. `DependsOn` is only needed for implicit dependencies that aren't captured by these references — for example, an app server that requires an internet gateway to be attached before it can reach the internet."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "What do CloudFormation StackSets enable?",
+    options: [
+      "Deploying a stack across multiple Availability Zones",
+      "Creating stack templates from existing resources",
+      "Deploying a single template across multiple accounts and regions",
+      "Grouping related stacks for bulk update operations"
+    ],
+    answer: 2,
+    explanation: "StackSets let you deploy a single CloudFormation template across multiple AWS accounts and regions from a single management operation. They're essential for organizations that need consistent infrastructure across their account landscape."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "What are the two permission models for CloudFormation StackSets?",
+    options: [
+      "IAM-based and resource-based policies",
+      "Self-managed (IAM roles) and service-managed (AWS Organizations)",
+      "Account-level and organization-level",
+      "Push-based and pull-based deployment"
+    ],
+    answer: 1,
+    explanation: "Self-managed StackSets require you to create IAM admin and execution roles in each account manually. Service-managed StackSets use AWS Organizations for automatic trust — CloudFormation creates the necessary roles and can auto-deploy to new accounts."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "What is the key limitation of CloudFormation ChangeSets?",
+    options: [
+      "They cannot be used with nested stacks",
+      "They show what changes will be made but cannot predict whether the update will succeed",
+      "They require the stack to be in a healthy state before creation",
+      "They expire after 24 hours if not executed"
+    ],
+    answer: 1,
+    explanation: "ChangeSets show you exactly which resources will be added, modified, or replaced, but they cannot guarantee the update will succeed. For example, a ChangeSet won't tell you if a new instance type is unavailable in your AZ or if you'll hit a service limit."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "What are the four possible drift detection status values for a resource?",
+    options: [
+      "COMPLIANT, NON_COMPLIANT, UNKNOWN, ERROR",
+      "IN_SYNC, DRIFTED, NOT_CHECKED, DELETED",
+      "MATCHING, CHANGED, PENDING, REMOVED",
+      "STABLE, MODIFIED, UNSCANNED, MISSING"
+    ],
+    answer: 1,
+    explanation: "CloudFormation drift detection reports four statuses: IN_SYNC (matches template), DRIFTED (has been modified outside CloudFormation), NOT_CHECKED (drift detection hasn't been run), and DELETED (resource was deleted outside CloudFormation)."
+  },
+  {
+    domain: 2,
+    service: "CloudFormation",
+    q: "A CloudFormation template works in us-east-1 but fails in eu-west-1 with a resource creation error. What is the most likely cause?",
+    options: [
+      "The template uses a feature not available in eu-west-1",
+      "Hardcoded AMI IDs that are region-specific",
+      "Different IAM permissions in the two regions",
+      "CloudFormation API version mismatch between regions"
+    ],
+    answer: 1,
+    explanation: "AMI IDs are region-specific — an AMI ID valid in us-east-1 does not exist in eu-west-1. The fix is to use a Mappings section that maps region names to the correct AMI IDs, or use SSM Parameter Store dynamic references to resolve the latest AMI per region."
+  }
+];
+
+// Startup validation
+QUESTIONS.forEach((q, idx) => {
+  if (q.answer < 0 || q.answer >= q.options.length)
+    console.error(`Question ${idx} ("${q.service}"): invalid answer index ${q.answer}`);
+  if (!q.explanation)
+    console.warn(`Question ${idx} ("${q.service}"): missing explanation`);
+  if (!DOMAINS[q.domain])
+    console.error(`Question ${idx} ("${q.service}"): invalid domain ${q.domain}`);
+});
+</script>
+
+<!-- ============ APP ============ -->
+<script id="quiz-app">
+/* ===== Derived lookups ===== */
+const servicesByDomain = {};
+Object.keys(DOMAINS).forEach(d => servicesByDomain[d] = []);
+SERVICES.forEach(s => {
+  if (servicesByDomain[s.domain]) servicesByDomain[s.domain].push(s);
+});
+
+const questionCounts = {};
+QUESTIONS.forEach(q => {
+  questionCounts[q.service] = (questionCounts[q.service] || 0) + 1;
+});
+
+const domainQuestionCounts = {};
+QUESTIONS.forEach(q => {
+  domainQuestionCounts[q.domain] = (domainQuestionCounts[q.domain] || 0) + 1;
+});
+
+/* ===== State ===== */
+const state = {
+  screen: 'menu',
+  selectedDomains: new Set(Object.keys(DOMAINS).map(Number)),
+  selectedServices: new Set(SERVICES.map(s => s.id)),
+  expandedDomains: new Set(),
+  queue: [],
+  currentIdx: 0,
+  answered: false,
+  currentCorrectIdx: 0,
+  results: {},       // service -> { correct, total }
+  missedQuestions: [],
+};
+
+/* ===== Utils ===== */
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function show(id) {
+  state.screen = id.replace('screen-', '');
+  ['screen-menu','screen-quiz','screen-results'].forEach(s => {
+    document.getElementById(s).classList.toggle('hidden', s !== id);
+  });
+}
+
+const _checkSvgTemplate = (() => {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', '12'); svg.setAttribute('height', '12');
+  svg.setAttribute('viewBox', '0 0 12 12'); svg.setAttribute('fill', 'none');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M2 6l3 3 5-5');
+  path.setAttribute('stroke', '#fff'); path.setAttribute('stroke-width', '2');
+  path.setAttribute('stroke-linecap', 'round'); path.setAttribute('stroke-linejoin', 'round');
+  svg.appendChild(path);
+  return svg;
+})();
+
+function makeCheckSvg(size) {
+  const clone = _checkSvgTemplate.cloneNode(true);
+  clone.setAttribute('width', String(size));
+  clone.setAttribute('height', String(size));
+  return clone;
+}
+
+/* ===== Menu ===== */
+function buildMenu() {
+  const list = document.getElementById('domain-list');
+  list.innerHTML = '';
+
+  Object.keys(DOMAINS).map(Number).forEach(domainNum => {
+    const domain = DOMAINS[domainNum];
+    const services = servicesByDomain[domainNum] || [];
+    const domainQCount = domainQuestionCounts[domainNum] || 0;
+    const allServicesSelected = services.length > 0 && services.every(s => state.selectedServices.has(s.id));
+    const someServicesSelected = services.some(s => state.selectedServices.has(s.id));
+
+    const card = document.createElement('div');
+    card.className = 'domain-card';
+    card.style.setProperty('--domain-color', domain.color);
+
+    // Domain header row
+    const header = document.createElement('div');
+    const isChecked = allServicesSelected || (services.length === 0 && state.selectedDomains.has(domainNum));
+    header.className = 'domain-header' + (isChecked ? ' checked' : '');
+    header.setAttribute('tabindex', '0');
+    header.setAttribute('role', 'checkbox');
+    header.setAttribute('aria-checked', String(isChecked));
+    header.setAttribute('aria-expanded', String(state.expandedDomains.has(domainNum)));
+    header.setAttribute('aria-label', `Domain ${domainNum}: ${domain.name} - ${domainQCount} questions`);
+    header.dataset.domain = domainNum;
+
+    const cb = document.createElement('div');
+    cb.className = 'domain-checkbox';
+    cb.appendChild(makeCheckSvg(12));
+
+    const numBadge = document.createElement('span');
+    numBadge.className = 'domain-num';
+    numBadge.style.cssText = `background:${domain.bg};color:${domain.color}`;
+    numBadge.textContent = `D${domainNum}`;
+
+    const name = document.createElement('span');
+    name.className = 'domain-name';
+    name.textContent = domain.name;
+
+    const count = document.createElement('span');
+    count.className = 'domain-count';
+    count.textContent = `${domainQCount}q`;
+
+    const expand = document.createElement('span');
+    expand.className = 'domain-expand' + (state.expandedDomains.has(domainNum) ? ' open' : '');
+    expand.textContent = '\u25BC';
+
+    header.append(cb, numBadge, name, count, expand);
+
+    // Click on checkbox area toggles domain selection
+    cb.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleDomain(domainNum);
+    });
+
+    // Click on header expands/collapses
+    header.addEventListener('click', () => {
+      if (services.length === 0) {
+        toggleDomain(domainNum);
+        return;
+      }
+      if (state.expandedDomains.has(domainNum)) {
+        state.expandedDomains.delete(domainNum);
+      } else {
+        state.expandedDomains.add(domainNum);
+      }
+      buildMenu();
+    });
+
+    header.addEventListener('keydown', e => {
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        toggleDomain(domainNum);
+      }
+    });
+
+    card.appendChild(header);
+
+    // Service list (expandable)
+    if (services.length > 0) {
+      const svcList = document.createElement('div');
+      svcList.className = 'domain-services' + (state.expandedDomains.has(domainNum) ? ' open' : '');
+
+      services.forEach(svc => {
+        const checked = state.selectedServices.has(svc.id);
+        const row = document.createElement('div');
+        row.className = 'service-row' + (checked ? ' checked' : '');
+        row.style.setProperty('--domain-color', domain.color);
+        row.dataset.id = svc.id;
+        row.setAttribute('role', 'checkbox');
+        row.setAttribute('aria-checked', String(checked));
+        row.setAttribute('tabindex', '0');
+
+        const sCb = document.createElement('div');
+        sCb.className = 'service-checkbox';
+        sCb.appendChild(makeCheckSvg(10));
+
+        const badge = document.createElement('span');
+        badge.className = 'service-badge';
+        badge.style.cssText = `background:${domain.bg};color:${domain.color}`;
+        badge.textContent = svc.id;
+
+        const sCount = document.createElement('span');
+        sCount.className = 'service-count';
+        sCount.textContent = `${questionCounts[svc.id] || 0}q`;
+
+        row.append(sCb, badge, sCount);
+
+        row.addEventListener('click', () => {
+          toggleService(svc.id, domainNum);
+        });
+        row.addEventListener('keydown', e => {
+          if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            toggleService(svc.id, domainNum);
+          }
+        });
+
+        svcList.appendChild(row);
+      });
+
+      card.appendChild(svcList);
+    }
+
+    list.appendChild(card);
+  });
+
+  updateStartBtn();
+}
+
+function toggleDomain(domainNum) {
+  const services = servicesByDomain[domainNum] || [];
+  const allSelected = services.length > 0
+    ? services.every(s => state.selectedServices.has(s.id))
+    : state.selectedDomains.has(domainNum);
+
+  if (allSelected) {
+    state.selectedDomains.delete(domainNum);
+    services.forEach(s => state.selectedServices.delete(s.id));
+  } else {
+    state.selectedDomains.add(domainNum);
+    services.forEach(s => state.selectedServices.add(s.id));
+  }
+  buildMenu();
+}
+
+function toggleService(svcId, domainNum) {
+  if (state.selectedServices.has(svcId)) {
+    state.selectedServices.delete(svcId);
+  } else {
+    state.selectedServices.add(svcId);
+  }
+  // Update domain selection state
+  const services = servicesByDomain[domainNum] || [];
+  if (services.every(s => state.selectedServices.has(s.id))) {
+    state.selectedDomains.add(domainNum);
+  } else {
+    state.selectedDomains.delete(domainNum);
+  }
+  buildMenu();
+}
+
+function updateStartBtn() {
+  let totalQ = 0;
+  state.selectedServices.forEach(svcId => {
+    totalQ += questionCounts[svcId] || 0;
+  });
+  document.getElementById('btn-start').disabled = totalQ === 0;
+  const allSelected = state.selectedServices.size === SERVICES.length;
+  document.getElementById('btn-toggle-all').textContent = allSelected ? 'Deselect All' : 'Select All';
+}
+
+document.getElementById('btn-toggle-all').addEventListener('click', () => {
+  const allSelected = state.selectedServices.size === SERVICES.length;
+  if (allSelected) {
+    state.selectedServices.clear();
+    state.selectedDomains.clear();
+  } else {
+    SERVICES.forEach(s => state.selectedServices.add(s.id));
+    Object.keys(DOMAINS).map(Number).forEach(d => state.selectedDomains.add(d));
+  }
+  buildMenu();
+});
+
+document.getElementById('btn-start').addEventListener('click', () => startQuiz());
+
+/* ===== Quiz ===== */
+function startQuiz(questions) {
+  state.queue = shuffle(questions || QUESTIONS.filter(q => state.selectedServices.has(q.service)));
+  state.currentIdx = 0;
+  state.results = {};
+  state.missedQuestions = [];
+  state.queue.forEach(q => {
+    if (!state.results[q.service]) state.results[q.service] = { correct: 0, total: 0 };
+  });
+  show('screen-quiz');
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = state.queue[state.currentIdx];
+  const total = state.queue.length;
+  state.answered = false;
+
+  const domain = DOMAINS[q.domain];
+  const accentColor = domain ? domain.color : '#3b82f6';
+
+  // Set accent for this question's domain
+  document.documentElement.style.setProperty('--accent', accentColor);
+
+  // Domain label
+  const domainLabel = document.getElementById('quiz-domain-label');
+  domainLabel.textContent = domain ? `Domain ${q.domain}: ${domain.name}` : '';
+  domainLabel.style.color = accentColor;
+
+  // Progress
+  document.getElementById('progress-label').textContent = `${state.currentIdx + 1} / ${total}`;
+  document.getElementById('progress-fill').style.width = `${((state.currentIdx + 1) / total) * 100}%`;
+
+  // Badge
+  const badge = document.getElementById('q-badge');
+  badge.textContent = q.service;
+  badge.style.background = domain ? domain.bg : 'rgba(59,130,246,0.15)';
+  badge.style.color = accentColor;
+
+  // Question
+  document.getElementById('q-text').textContent = q.q;
+
+  // Options
+  const optionIndices = shuffle(q.options.map((_, i) => i));
+  state.currentCorrectIdx = optionIndices.indexOf(q.answer);
+  const grid = document.getElementById('options-grid');
+  grid.innerHTML = '';
+  const letters = ['A','B','C','D'];
+  optionIndices.forEach((origIdx, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    const letterSpan = document.createElement('span');
+    letterSpan.className = 'option-letter';
+    letterSpan.textContent = letters[i];
+    const textSpan = document.createElement('span');
+    textSpan.textContent = q.options[origIdx];
+    btn.append(letterSpan, textSpan);
+    btn.addEventListener('click', () => selectAnswer(i));
+    grid.appendChild(btn);
+  });
+
+  // Explanation reset
+  const exBox = document.getElementById('explanation-box');
+  exBox.classList.remove('visible');
+  exBox.style.borderLeftColor = accentColor;
+  exBox.querySelector('.explanation-label').textContent = '';
+  exBox.querySelector('.explanation-body').textContent = '';
+
+  // Footer
+  document.getElementById('feedback-text').textContent = '';
+  document.getElementById('feedback-text').className = 'feedback-text';
+  document.getElementById('btn-next').classList.add('hidden');
+}
+
+function selectAnswer(chosenIdx) {
+  if (state.answered) return;
+  state.answered = true;
+
+  const q = state.queue[state.currentIdx];
+  const correct = state.currentCorrectIdx;
+  const buttons = document.querySelectorAll('.option-btn');
+
+  buttons.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === correct) btn.classList.add('correct');
+    else if (i === chosenIdx) btn.classList.add('wrong');
+  });
+
+  state.results[q.service].total++;
+  const isCorrect = chosenIdx === correct;
+  if (isCorrect) {
+    state.results[q.service].correct++;
+  } else {
+    state.missedQuestions.push(q);
+  }
+
+  const fb = document.getElementById('feedback-text');
+  if (isCorrect) {
+    fb.textContent = 'Correct!';
+    fb.className = 'feedback-text correct';
+  } else {
+    fb.textContent = 'Incorrect';
+    fb.className = 'feedback-text wrong';
+  }
+
+  document.getElementById('btn-next').classList.remove('hidden');
+
+  // Explanation
+  const domain = DOMAINS[q.domain];
+  const box = document.getElementById('explanation-box');
+  box.style.borderLeftColor = domain ? domain.color : '#3b82f6';
+  box.querySelector('.explanation-label').textContent = 'Explanation';
+  box.querySelector('.explanation-body').textContent = q.explanation || '';
+  // Force a browser reflow before adding the transition class;
+  // without the double-rAF, the CSS opacity transition won't animate
+  // because the element starts with opacity:0 and the class add
+  // would batch with the DOM insert in the same frame.
+  requestAnimationFrame(() => requestAnimationFrame(() => box.classList.add('visible')));
+}
+
+function advanceQuestion() {
+  if (!state.answered) return;
+  state.currentIdx++;
+  if (state.currentIdx >= state.queue.length) {
+    showResults();
+  } else {
+    renderQuestion();
+  }
+}
+
+document.getElementById('btn-next').addEventListener('click', advanceQuestion);
+
+// Keyboard
+document.addEventListener('keydown', e => {
+  const quizVisible = !document.getElementById('screen-quiz').classList.contains('hidden');
+  if (!quizVisible) return;
+  if (e.target.closest('button')) return;
+
+  if (!state.answered && ['1','2','3','4'].includes(e.key)) {
+    const idx = parseInt(e.key) - 1;
+    const buttons = document.querySelectorAll('.option-btn');
+    if (idx < buttons.length) {
+      e.preventDefault();
+      selectAnswer(idx);
+    }
+  }
+  if (state.answered && (e.key === 'Enter' || e.key === ' ')) {
+    e.preventDefault();
+    advanceQuestion();
+  }
+});
+
+/* ===== Results ===== */
+function showResults() {
+  const totalCorrect = Object.values(state.results).reduce((s, r) => s + r.correct, 0);
+  const totalQuestions = state.queue.length;
+  const pct = Math.round((totalCorrect / totalQuestions) * 100);
+
+  document.getElementById('score-big').textContent = `${totalCorrect} / ${totalQuestions}`;
+  document.getElementById('score-pct').textContent = `${pct}% correct`;
+
+  const grid = document.getElementById('breakdown-grid');
+  grid.innerHTML = '';
+
+  // Group services by domain for display
+  const domainsInQuiz = [...new Set(state.queue.map(q => q.domain))].sort((a, b) => a - b);
+
+  domainsInQuiz.forEach(domainNum => {
+    const domain = DOMAINS[domainNum];
+
+    // Compute domain-level score
+    const domainServices = state.queue.filter(q => q.domain === domainNum).map(q => q.service);
+    const uniqueServices = [...new Set(domainServices)];
+    let domainCorrect = 0, domainTotal = 0;
+    uniqueServices.forEach(svcId => {
+      const r = state.results[svcId];
+      if (r) { domainCorrect += r.correct; domainTotal += r.total; }
+    });
+
+    if (domainTotal === 0) return;
+
+    const domainRatio = domainCorrect / domainTotal;
+
+    // Domain header row
+    const dHeader = document.createElement('div');
+    dHeader.className = 'domain-breakdown-header';
+
+    const dBadge = document.createElement('span');
+    dBadge.className = 'domain-num';
+    dBadge.style.cssText = `background:${domain.bg};color:${domain.color}`;
+    dBadge.textContent = `D${domainNum}`;
+
+    const dName = document.createElement('span');
+    dName.className = 'domain-breakdown-name';
+    dName.textContent = domain.name;
+
+    const dBarWrap = document.createElement('div');
+    dBarWrap.className = 'breakdown-bar-wrap';
+    const dBar = document.createElement('div');
+    dBar.className = 'breakdown-bar';
+    dBar.style.cssText = `width:${Math.round(domainRatio*100)}%;background:${domain.color}`;
+    dBarWrap.appendChild(dBar);
+
+    let dScoreClass = 'partial';
+    if (domainRatio === 1) dScoreClass = 'perfect';
+    else if (domainRatio === 0) dScoreClass = 'zero';
+
+    const dScore = document.createElement('span');
+    dScore.className = `breakdown-score ${dScoreClass}`;
+    dScore.textContent = `${domainCorrect}/${domainTotal}`;
+
+    dHeader.append(dBadge, dName, dBarWrap, dScore);
+    grid.appendChild(dHeader);
+
+    // Per-service rows under this domain
+    uniqueServices.forEach(svcId => {
+      const r = state.results[svcId];
+      if (!r || r.total === 0) return;
+      const ratio = r.correct / r.total;
+
+      const row = document.createElement('div');
+      row.className = 'breakdown-row';
+
+      const badge = document.createElement('span');
+      badge.className = 'service-badge';
+      badge.style.cssText = `background:${domain.bg};color:${domain.color};flex:1`;
+      badge.textContent = svcId;
+
+      const barWrap = document.createElement('div');
+      barWrap.className = 'breakdown-bar-wrap';
+      const bar = document.createElement('div');
+      bar.className = 'breakdown-bar';
+      bar.style.cssText = `width:${Math.round(ratio*100)}%;background:${ratio===1?'#22c55e':ratio===0?'#ef4444':'#f59e0b'}`;
+      barWrap.appendChild(bar);
+
+      let scoreClass = 'partial';
+      if (ratio === 1) scoreClass = 'perfect';
+      else if (ratio === 0) scoreClass = 'zero';
+
+      const score = document.createElement('span');
+      score.className = `breakdown-score ${scoreClass}`;
+      score.textContent = `${r.correct}/${r.total}`;
+
+      row.append(badge, barWrap, score);
+      grid.appendChild(row);
+    });
+  });
+
+  // Show/hide re-quiz button
+  const requizBtn = document.getElementById('btn-requiz-missed');
+  if (state.missedQuestions.length > 0) {
+    requizBtn.classList.remove('hidden');
+    requizBtn.textContent = `Re-quiz ${state.missedQuestions.length} Missed`;
+  } else {
+    requizBtn.classList.add('hidden');
+  }
+
+  show('screen-results');
+}
+
+document.getElementById('btn-restart').addEventListener('click', () => {
+  document.documentElement.style.setProperty('--accent', '#3b82f6');
+  show('screen-menu');
+});
+
+document.getElementById('btn-requiz-missed').addEventListener('click', () => {
+  if (state.missedQuestions.length > 0) {
+    startQuiz([...state.missedQuestions]);
+  }
+});
+
+/* ===== Init ===== */
+buildMenu();
+show('screen-menu');
+</script>
+</body>
+</html>
