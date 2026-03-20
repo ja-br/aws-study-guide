@@ -1,0 +1,175 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --background-color: #222225;
+  --surface: #2a2a2e;
+  --surface2: #3f3f44;
+  --secondary-color: #a3abba;
+  --font-color: #e8e9ed;
+  --primary-color: #62c4ff;
+  --error-color: #ff3c74;
+  --green: #22c55e;
+  --green-dim: rgba(34,197,94,0.15);
+  --red: #ff3c74;
+  --red-dim: rgba(255,60,116,0.15);
+  --accent: #62c4ff;
+  --accent-bg: rgba(98,196,255,0.15);
+  --text: var(--font-color);
+  --text-muted: var(--secondary-color);
+  --border: #4a4a50;
+}
+
+body {
+  background: var(--background-color);
+  font-family: system-ui, 'Segoe UI', sans-serif;
+  color: var(--font-color);
+  min-height: 100vh;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+/* ── Buttons ── */
+
+.btn-primary {
+  padding: 18px 48px;
+  border-radius: 0;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 700;
+  font-family: inherit;
+  background: var(--accent);
+  color: #000;
+  transition: background 0.15s;
+}
+.btn-primary:hover:not(:disabled) { background: #4ab8f0; }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-ghost {
+  padding: 14px 32px;
+  border-radius: 0;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  background: none;
+  color: var(--text-muted);
+  transition: opacity 0.15s;
+}
+.btn-ghost:hover { opacity: 0.85; }
+
+.btn-danger {
+  padding: 14px 32px;
+  border-radius: 0;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  background: var(--red);
+  color: #fff;
+  transition: opacity 0.15s;
+}
+.btn-danger:hover { opacity: 0.85; }
+
+.btn-restart {
+  padding: 14px 32px;
+  border-radius: 0;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  background: var(--accent);
+  color: #000;
+  transition: opacity 0.15s;
+}
+.btn-restart:hover { opacity: 0.85; }
+
+/* ── Keyboard badge ── */
+
+.kbd {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 0;
+  font-size: 10px;
+  font-family: 'Courier New', monospace;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--surface2);
+  color: rgba(255, 255, 255, 0.4);
+  margin-left: 4px;
+}
+
+/* ── Menu ── */
+
+.domain-chip {
+  padding: 12px 20px;
+  border-radius: 0;
+  cursor: pointer;
+  transition: background 0.15s;
+  border: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  user-select: none;
+}
+.domain-chip:hover { background: var(--surface2); }
+
+/* ── Play / Card ── */
+
+.fc-card {
+  width: 100%;
+  max-width: 560px;
+  min-height: 340px;
+  border-radius: 0;
+  cursor: pointer;
+  position: relative;
+  perspective: 1000px;
+  transition: transform 0.35s ease, opacity 0.35s ease;
+}
+.fc-card.slide-right { transform: translateX(120%) rotate(8deg); opacity: 0; }
+.fc-card.slide-left  { transform: translateX(-120%) rotate(-8deg); opacity: 0; }
+
+.fc-inner {
+  width: 100%;
+  min-height: 340px;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.5s ease;
+}
+.fc-inner.flipped { transform: rotateY(180deg); }
+
+.fc-front,
+.fc-back {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  min-height: 340px;
+  backface-visibility: hidden;
+  border-radius: 0;
+  padding: 36px 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.fc-back { transform: rotateY(180deg); }
+
+.mark-btn {
+  padding: 14px 28px;
+  border-radius: 0;
+  border: 1px solid;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  transition: opacity 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mark-btn:hover  { opacity: 0.85; }
+.mark-btn:active { opacity: 0.7; }
