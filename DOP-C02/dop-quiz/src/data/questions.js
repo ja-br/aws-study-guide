@@ -3577,5 +3577,441 @@ export const QUESTIONS = [
       "Amazon S3 directly, with automatic Parquet conversion"
     ],
     explanation: "CloudWatch Metric Streams' supported destinations include Kinesis Data Firehose and third-party platforms such as Datadog, Dynatrace, and Splunk. It does not write to Kinesis Data Streams, EventBridge, or S3 directly."
+  },
+
+  /* -- EventBridge (5) -- */
+  {
+    domain: 5,
+    service: "EventBridge",
+    q: "An organization wants every member account to publish application events into a single central EventBridge bus in the management account, without each member account assuming a cross-account IAM role. What is the correct configuration?",
+    options: [
+      "Attach a resource-based policy to the central event bus that allows the member accounts to put events",
+      "Create an IAM role in the management account and have each member account assume it before calling PutEvents",
+      "Enable Kinesis Data Streams in each account and fan events into the central bus through a Lambda forwarder",
+      "Turn on CloudTrail organization trails, which automatically mirror events into the management account's bus"
+    ],
+    explanation: "Event buses are accessed cross-account via resource-based policies on the bus itself, enabling member accounts to PutEvents without cross-account IAM roles or extra network plumbing. An assumed IAM role would work but is not the resource-based-policy pattern described for organization-wide aggregation, Kinesis is unrelated, and CloudTrail organization trails audit API calls — they don't re-publish to an EventBridge bus."
+  },
+  {
+    domain: 5,
+    service: "EventBridge",
+    q: "Which statement correctly describes the three types of EventBridge event buses?",
+    options: [
+      "Default buses receive AWS service events in the same account/region; partner buses receive events from SaaS providers like Zendesk or Datadog; custom buses receive events from applications you build",
+      "Default, partner, and custom buses are simply naming conventions — they all behave identically and only AWS services can publish to them",
+      "Default buses are global, partner buses are per-region, and custom buses can only receive scheduled cron events",
+      "Default buses receive only CloudTrail events, partner buses receive only third-party webhook events, and custom buses receive only Lambda events"
+    ],
+    explanation: "EventBridge defines three bus types: default (AWS service events in that account/region), partner (events from SaaS partners like Zendesk, Datadog, Auth0 after authentication), and custom (events from your own applications). The other options misrepresent bus scope and the kinds of events each accepts."
+  },
+  {
+    domain: 5,
+    service: "EventBridge",
+    q: "A team just fixed a bug in a Lambda target and wants to reprocess events that were delivered to it during the previous two days. Which EventBridge capability supports this?",
+    options: [
+      "Configure an archive on the event bus (retaining events for a specified period) and use replay to re-send archived events to the same targets",
+      "Restore the Lambda function from an AWS Backup snapshot from two days ago so it reprocesses the events on next invocation",
+      "Resend events from CloudTrail's 90-day event history into the bus",
+      "Use EventBridge Schema Registry to regenerate and redeliver inferred event payloads"
+    ],
+    explanation: "EventBridge archives capture events on a bus for a configured retention, and replay re-sends archived events to targets — exactly the 'fix a bug, reprocess events' workflow described. AWS Backup does not store delivered events, CloudTrail's event history is for audit-not-replay, and Schema Registry infers schemas for code generation, not event replay."
+  },
+  {
+    domain: 5,
+    service: "EventBridge",
+    q: "A developer wants strongly-typed code bindings (for example, TypeScript classes) generated from the events actually flowing through an EventBridge bus. Which feature provides this?",
+    options: [
+      "The EventBridge Schema Registry, which infers schemas from events on the bus and can generate language-specific code bindings",
+      "EventBridge Pipes, which emit OpenAPI specs for each matched event pattern",
+      "CloudFormation drift detection, which diffs event payloads against declared stacks",
+      "CloudWatch Logs Insights, which extracts fields from JSON events into columns"
+    ],
+    explanation: "Schema Registry automatically infers schemas for events flowing through a bus, stores and versions them, and generates code bindings (Python, Java, TypeScript, etc.) for type-safe event handling. Pipes is a source-to-target integration feature (not a code generator), CloudFormation drift is for stacks, and Logs Insights queries log text rather than producing code bindings."
+  },
+  {
+    domain: 5,
+    service: "EventBridge",
+    q: "What is the primary purpose of attaching a resource-based policy to an EventBridge event bus?",
+    options: [
+      "To control which principals — including other AWS accounts and regions — can put events onto the bus or otherwise access it",
+      "To set per-rule throttling limits so noisy rules cannot starve other rules on the bus",
+      "To enable encryption at rest on archived events using a customer-managed KMS key",
+      "To define the event pattern that the bus uses to filter incoming events"
+    ],
+    explanation: "Resource-based policies on an event bus control which principals can access it, including cross-account and cross-region publishers — the foundation for organization-wide aggregation. Throttling is not configured via bus policies, KMS encryption is a separate setting, and event patterns live on rules, not the bus resource policy."
+  },
+
+  /* -- S3 Event Notifications (5) -- */
+  {
+    domain: 5,
+    service: "S3 Event Notifications",
+    q: "Which of the following are the valid direct delivery targets for S3 Event Notifications (without going through EventBridge)?",
+    options: [
+      "Amazon SQS queues, Amazon SNS topics, and AWS Lambda functions",
+      "Only AWS Lambda functions — other targets require a Lambda trampoline",
+      "Amazon Kinesis Data Streams, Amazon SQS FIFO queues, and AWS Step Functions",
+      "Any EventBridge rule target, because S3 notifications are implemented on top of EventBridge"
+    ],
+    explanation: "S3 Event Notifications deliver directly to SQS queues, SNS topics, and Lambda functions. Kinesis and Step Functions are not direct S3 notification targets (they would require EventBridge), and the EventBridge integration is an optional alternative path, not the underlying implementation of the direct-notification feature."
+  },
+  {
+    domain: 5,
+    service: "S3 Event Notifications",
+    q: "A team configures S3 Event Notifications to deliver to an SQS queue in the same account. Which IAM construct actually authorizes S3 to deliver messages to that queue?",
+    options: [
+      "A resource-based access policy on the SQS queue that grants the S3 service permission to SendMessage",
+      "An IAM role attached to the S3 bucket that is assumed by the S3 service at delivery time",
+      "An IAM user with programmatic credentials that S3 uses when posting the notification",
+      "A KMS grant on the default S3 key that implicitly authorizes the SendMessage call"
+    ],
+    explanation: "S3 Event Notifications do not use an IAM role on the bucket — you attach a resource-based access policy to the destination (SQS, SNS, or Lambda) allowing the S3 service to publish/invoke. IAM roles on the bucket, IAM user credentials, and KMS grants are not how authorization is set up for this feature."
+  },
+  {
+    domain: 5,
+    service: "S3 Event Notifications",
+    q: "A bucket receives uploads from many applications, but only objects under the `raw/` prefix ending in `.csv` should trigger downstream processing. What is the simplest way to restrict which events fire?",
+    options: [
+      "Configure object-name filtering on the S3 Event Notification using a prefix of `raw/` and a suffix of `.csv`",
+      "Create a Lambda function that receives every event and drops non-matching ones in code",
+      "Enable S3 Select on the bucket so only CSV objects generate events",
+      "Split the data into a second bucket that only accepts `.csv` uploads and notify from that bucket"
+    ],
+    explanation: "S3 Event Notifications support object-name filtering on key prefix and suffix, so you can scope notifications to (for example) `raw/` + `.csv` without additional compute. Filtering in Lambda wastes invocations, S3 Select is a query feature on object content, and splitting buckets is heavier than the native filter."
+  },
+  {
+    domain: 5,
+    service: "S3 Event Notifications",
+    q: "A team needs to match on object size and complex JSON metadata attributes, archive events for later replay, and fan out to more than ten different targets. Which S3 event-delivery option should they choose?",
+    options: [
+      "Publish S3 events to Amazon EventBridge and use EventBridge rules with advanced JSON pattern matching, archive/replay, and multi-target fan-out",
+      "Use direct S3 Event Notifications to a single SNS topic with many subscribers, relying on SNS filter policies",
+      "Write every object event to CloudWatch Logs with a metric filter and alarm on each downstream condition",
+      "Enable S3 Inventory and schedule a Lambda to poll the inventory report every minute"
+    ],
+    explanation: "S3 can publish events directly to EventBridge, which supports advanced JSON filtering on attributes like size and metadata, archive/replay, schema registry, and multi-destination fan-out across 18+ targets. SNS filter policies are simpler but less expressive, CloudWatch Logs is not an event router, and S3 Inventory is a daily/weekly report — not near-real-time."
+  },
+  {
+    domain: 5,
+    service: "S3 Event Notifications",
+    q: "When an object uploaded to S3 is encrypted with SSE-S3, what does the ETag returned on a single-part upload correspond to?",
+    options: [
+      "The MD5 hash of the object's content",
+      "A SHA-256 hash that includes both the content and the KMS key ARN",
+      "A random UUID generated by S3 to identify the object version",
+      "A CRC32C checksum of the ciphertext stored on disk"
+    ],
+    explanation: "For objects encrypted with SSE-S3 on a single-part upload, the ETag equals the MD5 hash of the object's content. Multipart uploads or other encryption modes may compute the ETag differently and may not equal any direct content hash, so clients should instead pick a specific checksum algorithm (MD5/SHA-1/SHA-256/CRC32/CRC32C) when strict integrity checks are required."
+  },
+  {
+    domain: 5,
+    service: "S3 Event Notifications",
+    q: "Which S3 event type fires when an object is restored from archival storage back to an immediately retrievable state?",
+    options: [
+      "s3:ObjectRestore",
+      "s3:ObjectCreated",
+      "s3:ObjectRemoved",
+      "s3:Replication"
+    ],
+    explanation: "`s3:ObjectRestore` specifically signals that an object was restored from archival storage (for example, Glacier). `s3:ObjectCreated` covers uploads/copies, `s3:ObjectRemoved` covers deletes, and `s3:Replication` covers replication to another bucket."
+  },
+
+  /* -- Health Dashboard (4) -- */
+  {
+    domain: 5,
+    service: "Health Dashboard",
+    q: "A new engineer sees two different 'Health' views in the console. Which statement accurately distinguishes the AWS Service Health Dashboard from the AWS Account Health Dashboard?",
+    options: [
+      "Service Health shows the current and historical status of AWS services across all regions (with an RSS feed); Account Health provides a personalized view of events impacting your resources, including proactive notifications and remediation",
+      "Service Health and Account Health are the same page with different color themes; either can be used interchangeably",
+      "Service Health is only available to Enterprise Support customers; Account Health is free but limited to 24 hours of history",
+      "Service Health shows your personal resources; Account Health shows global AWS service availability"
+    ],
+    explanation: "The Service Health Dashboard is the global, public-style view of all regions and services with daily history and an RSS feed, while the Account Health Dashboard is personalized to your resources and surfaces alerts, remediation guidance, and proactive notifications. The other options either swap those roles or invent pricing/scope restrictions."
+  },
+  {
+    domain: 5,
+    service: "Health Dashboard",
+    q: "An operations team wants an automated feed of AWS service health changes across all regions so they can ingest status into a status page aggregator. Which built-in mechanism does the AWS Service History Dashboard expose for this?",
+    options: [
+      "An RSS feed that publishes service health updates as they change",
+      "A CloudWatch custom metric published on the AWS/ServiceHealth namespace",
+      "A Kinesis Firehose delivery stream to S3 enabled per account",
+      "A CloudTrail data event stream for the Health API"
+    ],
+    explanation: "The Service History Dashboard provides an RSS feed of service-health updates so subscribers get notified of changes. It does not publish to an AWS/ServiceHealth namespace, Firehose, or CloudTrail data events for this purpose."
+  },
+  {
+    domain: 5,
+    service: "Health Dashboard",
+    q: "A central operations team in a management account wants one dashboard that shows Health events affecting any account in their AWS Organization. What supports this?",
+    options: [
+      "The Account Health Dashboard can aggregate data from the entire AWS Organization into a single centralized view",
+      "Health events are strictly per-account; a central view requires manually calling the Health API from each account and merging results",
+      "Consolidated Billing must be enabled for Health event aggregation — otherwise only the payer account's events are visible",
+      "Health events are aggregated via AWS Config conformance packs into the delegated audit account"
+    ],
+    explanation: "The Account Health Dashboard aggregates data across an AWS Organization so operations teams can coordinate responses to events affecting multiple accounts. Manual API-scraping is not required, Consolidated Billing is unrelated to this feature, and Config conformance packs do not aggregate Health events."
+  },
+  {
+    domain: 5,
+    service: "Health Dashboard",
+    q: "What is AWS Health Dashboard's service scope?",
+    options: [
+      "It is a global service that provides visibility into AWS services and resources across all regions",
+      "It is a per-region service that must be enabled independently in each region",
+      "It is a per-VPC service scoped to a specific network environment",
+      "It is an on-premises-only service that reports health of Outposts"
+    ],
+    explanation: "The Health Dashboard is explicitly described as a global service providing visibility into AWS services and your resources. It is not per-region, per-VPC, or limited to Outposts."
+  },
+
+  /* -- Health Event Notifications (2) -- */
+  {
+    domain: 5,
+    service: "Health Event Notifications",
+    q: "A team wants to automatically run a Lambda remediation function whenever an AWS Health event indicates an EC2 instance in their account will be retired. How is this wired up?",
+    options: [
+      "Configure an EventBridge rule that matches AWS Health events from the Health Dashboard and targets the Lambda function",
+      "Subscribe the Lambda function directly to the AWS Service Health RSS feed",
+      "Enable an AWS Config remediation action bound to the Health event stream",
+      "Install the CloudWatch Agent on the instance so it self-notifies when retired"
+    ],
+    explanation: "The Health Dashboard emits Health events to EventBridge, and EventBridge rules can target Lambda (or SNS, etc.) for automated response. The RSS feed is for human/feed consumers — not direct Lambda subscription. Config remediation is for configuration drift, and CloudWatch Agent reports OS metrics, not retirement notifications."
+  },
+  {
+    domain: 5,
+    service: "Health Event Notifications",
+    q: "Which categories of events does AWS Health deliver through EventBridge?",
+    options: [
+      "Account events, which affect resources in your AWS account, and public events, which describe regional availability of AWS services",
+      "Only account events — public service availability is only visible on the Service Health web page",
+      "Only billing events and support case updates",
+      "Only security findings forwarded from Amazon GuardDuty and AWS Security Hub"
+    ],
+    explanation: "Health Event Notifications cover both account events (affecting your resources) and public events (regional service availability). Public events are delivered — not only visible on the webpage — and billing, support, GuardDuty, and Security Hub are separate event sources."
+  },
+
+  /* -- EC2 Status Checks (5) -- */
+  {
+    domain: 5,
+    service: "EC2 Status Checks",
+    q: "An EC2 instance fails a status check because the underlying physical host has a hardware fault. Which specific check failed, and what is the standard remediation?",
+    options: [
+      "The system status check failed; resolution typically involves migrating the instance to a new host, which can be triggered by instance recovery or by stopping and starting the instance",
+      "The instance status check failed; the fix is to reboot the OS",
+      "The attached EBS status check failed; the fix is to detach and reattach the volume",
+      "A composite StatusCheckFailed metric failed; the fix is to re-launch the AMI"
+    ],
+    explanation: "System status checks monitor the AWS-managed host and network; when they fail the host is suspect, so the remedy is migrating to a new host (via instance recovery or stop/start). Instance checks cover the OS layer, attached-EBS checks cover volumes, and `StatusCheckFailed` is a composite that doesn't pinpoint hardware."
+  },
+  {
+    domain: 5,
+    service: "EC2 Status Checks",
+    q: "Which CloudWatch metric specifically fires when the operating system running on an EC2 instance is unhealthy (for example, kernel panic or network misconfiguration on the guest)?",
+    options: [
+      "StatusCheckFailed_Instance",
+      "StatusCheckFailed_System",
+      "StatusCheckFailed_AttachedEBS",
+      "StatusCheckFailed (composite)"
+    ],
+    explanation: "`StatusCheckFailed_Instance` covers the OS and software configuration on the guest, including kernel panics and network problems. `StatusCheckFailed_System` is the underlying host, `StatusCheckFailed_AttachedEBS` is for EBS volumes, and the composite `StatusCheckFailed` fires for any of them but does not identify the layer."
+  },
+  {
+    domain: 5,
+    service: "EC2 Status Checks",
+    q: "A finance application runs on a single EC2 instance with an Elastic IP address and must keep its private IP, EIP, and placement-group assignment if the instance needs to be automatically recovered. Which recovery approach meets this requirement?",
+    options: [
+      "A CloudWatch Alarm on a status check metric that triggers EC2 instance recovery — the recovered instance retains the same private IP, public IP, EIP, metadata, and placement group",
+      "An Auto Scaling Group with min=max=1 — ASG replacement preserves the original private IP and EIP",
+      "Deploy two instances behind a Network Load Balancer and rely on the NLB to preserve the EIP",
+      "Create an AMI nightly and use AWS Backup to restore the instance on failure"
+    ],
+    explanation: "CloudWatch Alarm + instance recovery is the option that preserves private IP, public IP, EIP, instance metadata, and placement group. An ASG replaces the instance and does NOT inherit the original private IP or EIP — which would break the EIP-bound requirement. NLB and AMI restore don't provide the documented IP-preservation guarantee."
+  },
+  {
+    domain: 5,
+    service: "EC2 Status Checks",
+    q: "A team uses an Auto Scaling Group for auto-recovery of failed EC2 instances. Which consequence must they plan for that would not occur with CloudWatch Alarm-based instance recovery?",
+    options: [
+      "The replacement instance receives a new private IP and does not inherit the original Elastic IP or public IP",
+      "The replacement instance always launches in a different region than the original",
+      "CloudWatch metrics are permanently lost for the original instance because ASG scrubs them",
+      "The ASG cannot be combined with an Elastic Load Balancer for the same instances"
+    ],
+    explanation: "ASG replacement terminates the unhealthy instance and launches a new one with a new private IP — it does not inherit the original Elastic IP or public IP. ASGs stay within their configured region/AZ, CloudWatch metric history isn't scrubbed by ASG, and ELB integration is routine."
+  },
+  {
+    domain: 5,
+    service: "EC2 Status Checks",
+    q: "Which CloudWatch metric fires whenever any EC2 status check (system, instance, or attached-EBS) fails — useful for a single catch-all alarm?",
+    options: [
+      "StatusCheckFailed",
+      "StatusCheckFailed_System",
+      "StatusCheckFailed_Instance",
+      "StatusCheckFailed_AttachedEBS"
+    ],
+    explanation: "`StatusCheckFailed` is the composite metric that fires when any of the underlying status checks fails. The three layer-specific metrics fire only for their respective check and are better when you want to route differently based on failure type."
+  },
+
+  /* -- CloudTrail (5) -- */
+  {
+    domain: 5,
+    service: "CloudTrail",
+    q: "A security engineer needs to know who deleted a production DynamoDB table and when. They open the CloudTrail console 100 days after the deletion and find nothing. Why, and what is the recommended long-term fix?",
+    options: [
+      "CloudTrail retains events in the console for only 90 days; send events to Amazon S3 (and optionally query with Amazon Athena) for long-term retention",
+      "CloudTrail does not log DynamoDB table-deletion events; enable AWS Config rules instead for this kind of forensic visibility",
+      "CloudTrail was disabled by default and must be manually enabled; once enabled, all past events become visible retroactively",
+      "The events were logged but encrypted with a KMS key that has since been deleted, rendering them unreadable"
+    ],
+    explanation: "CloudTrail keeps event history in the console for 90 days by default, so a 100-day-old deletion is gone from the console view. For forensics beyond that window, send events to S3 and analyze them with Athena. CloudTrail IS on by default, it DOES log DynamoDB management events, and retroactive logging is not a feature."
+  },
+  {
+    domain: 5,
+    service: "CloudTrail",
+    q: "Which statement accurately distinguishes CloudTrail Management, Data, and Insights events?",
+    options: [
+      "Management events capture operations on AWS resources and are logged by default; Data events (S3 object-level and Lambda invocation activity) are NOT logged by default; Insights events automatically detect unusual activity against a learned baseline",
+      "Management, Data, and Insights events are all logged by default and differ only in retention period",
+      "Data events are logged by default; Management events must be opted into; Insights events only cover billing anomalies",
+      "Insights is the only event type that persists to S3 — Management and Data events are kept only in the console"
+    ],
+    explanation: "Management events are on by default; Data events (S3 object-level, Lambda invocations) must be explicitly enabled because of volume; Insights events analyze normal management activity to detect anomalies (provisioning spikes, unusual IAM actions, gaps in maintenance, limit breaches). The other options invert those defaults or invent behavior."
+  },
+  {
+    domain: 5,
+    service: "CloudTrail",
+    q: "A team wants to invoke a Lambda function the moment any `DeleteBucket` API call occurs in the account, so they can page an on-call engineer. What is the simplest architecture?",
+    options: [
+      "Use CloudTrail's integration with EventBridge: create an EventBridge rule matching the `DeleteBucket` API call and target the Lambda function (which can also publish to SNS)",
+      "Enable CloudTrail Insights and wait for it to flag the bucket deletion as an anomaly, which auto-invokes the Lambda function",
+      "Schedule a Lambda every minute that scans the last 60 seconds of the S3 bucket inventory looking for missing buckets",
+      "Turn on AWS Config with the `s3-bucket-deletion-prohibited` managed rule, which directly invokes Lambda when violated"
+    ],
+    explanation: "CloudTrail integrates with EventBridge so specific API calls (like `DeleteBucket`) can match rules that target Lambda or SNS for real-time response. Insights flags anomalies but isn't a deterministic per-event trigger, polling S3 inventory is slow, and that specific Config managed rule name isn't the right mechanism for a real-time alert."
+  },
+  {
+    domain: 5,
+    service: "CloudTrail",
+    q: "How can a compliance team retain and query CloudTrail events for multiple years at low cost?",
+    options: [
+      "Deliver CloudTrail events to Amazon S3 and use Amazon Athena to run ad-hoc SQL against the archived logs",
+      "Increase the CloudTrail console's retention setting from 90 days to 7 years via the CloudTrail dashboard",
+      "Stream every event into a DynamoDB table and use PartiQL for long-term queries",
+      "Store events exclusively in CloudWatch Logs with a 7-year retention policy, which is cheaper than S3 for this volume"
+    ],
+    explanation: "Long-term CloudTrail retention is done by delivering events to S3 (durable, cheap) and querying with Athena — that pattern is explicitly recommended for multi-year compliance archival. The console's 90-day window cannot be extended, DynamoDB is costly at log volumes, and CloudWatch Logs is not cheaper than S3 for this kind of archival."
+  },
+  {
+    domain: 5,
+    service: "CloudTrail",
+    q: "Which statement about CloudTrail's default behavior is accurate?",
+    options: [
+      "CloudTrail is enabled by default and captures events and API calls made via the console, SDK, CLI, and AWS services themselves",
+      "CloudTrail must be manually enabled in each account before any API calls are recorded",
+      "CloudTrail captures only calls made via the AWS Management Console — SDK and CLI calls require enabling a separate trail",
+      "CloudTrail captures only successful API calls — failed calls require enabling Insights"
+    ],
+    explanation: "CloudTrail is on by default and records events/API calls from the console, SDKs, CLI, and AWS services themselves. It does not require manual enablement to begin capturing, and it does not filter by caller tool or by success/failure status of the API call."
+  },
+
+  /* -- SQS DLQ (4) -- */
+  {
+    domain: 5,
+    service: "SQS DLQ",
+    q: "A team sets `maxReceiveCount` to 5 on an SQS source queue with a DLQ configured. What does this value control?",
+    options: [
+      "The number of times a message can be received and returned to the queue (after visibility-timeout expirations) before it is automatically moved to the Dead Letter Queue",
+      "The maximum number of consumers that can long-poll the queue concurrently",
+      "The number of messages the DLQ will accept per second from the source queue",
+      "The number of days a message is retained in the source queue before being discarded"
+    ],
+    explanation: "`maxReceiveCount` is the threshold for how many times a message can be delivered and returned (via visibility-timeout expiry) before SQS moves it to the DLQ. It is unrelated to consumer concurrency, DLQ throughput, or message retention period."
+  },
+  {
+    domain: 5,
+    service: "SQS DLQ",
+    q: "A team tries to attach a standard SQS queue as the DLQ for a FIFO source queue and receives an error. Why?",
+    options: [
+      "DLQs must match the source queue type — a FIFO queue's DLQ must also be FIFO, and a standard queue's DLQ must also be standard",
+      "DLQs are only supported for standard queues; FIFO queues use a separate 'error topic' on SNS",
+      "The DLQ's region must be different from the source queue's region, and standard queues are regionless",
+      "FIFO queues require the DLQ to be encrypted with a customer-managed KMS key"
+    ],
+    explanation: "SQS enforces type matching: FIFO source → FIFO DLQ, standard source → standard DLQ, to preserve ordering/delivery semantics. DLQs ARE supported for FIFO, they must be same-region, and KMS is independent of the type-match rule."
+  },
+  {
+    domain: 5,
+    service: "SQS DLQ",
+    q: "After identifying and fixing a bug in their consumer code, a team wants to reprocess the messages that accumulated in the DLQ — ideally in batches and without writing custom replay tooling. Which SQS capability fits?",
+    options: [
+      "Redrive to Source, which consumes messages from the DLQ and moves them back to the source queue in batches for reprocessing",
+      "SQS Message Replay, a continuous-tail feature that re-delivers DLQ messages in message-ID order",
+      "SQS FIFO deduplication, which automatically removes already-processed messages on re-enqueue",
+      "SNS fan-out, which takes the DLQ contents and re-publishes them to all original subscribers"
+    ],
+    explanation: "Redrive to Source is the documented feature for batch redelivery of DLQ messages back to the source queue after you've fixed the consumer. The others are not real SQS features or misapply existing features (dedup doesn't reprocess, SNS fan-out isn't a DLQ replay mechanism)."
+  },
+  {
+    domain: 5,
+    service: "SQS DLQ",
+    q: "Which statement about the SQS Redrive Policy is accurate?",
+    options: [
+      "It is a JSON object that references the ARN of the DLQ and can also be attached at the Amazon SNS subscription level so undeliverable SNS messages are captured for inspection",
+      "It is a Python script that runs on Lambda and polls the DLQ every minute",
+      "It is an IAM policy that grants the SQS service permission to retry failed messages",
+      "It is a CloudWatch alarm action that automatically resizes the queue when the DLQ fills"
+    ],
+    explanation: "The Redrive Policy is a JSON configuration referencing the DLQ's ARN, and Amazon SNS supports an analogous redrive policy at the subscription level to route undeliverable SNS messages to a DLQ. It is not code, an IAM policy, or an alarm action."
+  },
+
+  /* -- X-Ray (4) -- */
+  {
+    domain: 5,
+    service: "X-Ray",
+    q: "An operator enables X-Ray on an Elastic Beanstalk environment by checking the console option, but no traces appear. What is the most likely missing piece?",
+    options: [
+      "The application code has not been instrumented with the X-Ray SDK, so no segment/subsegment data is being generated",
+      "The Beanstalk load balancer has not been switched from ALB to NLB",
+      "The environment is missing an Amazon Kinesis Data Firehose delivery stream named `xray-firehose`",
+      "X-Ray is only supported on Beanstalk Windows platforms, and the app is running on Linux"
+    ],
+    explanation: "Beanstalk can auto-install and run the X-Ray daemon (via the console toggle or `.ebextensions`), but you still have to instrument your application with the X-Ray SDK to actually emit trace data to that daemon. Load balancer type is irrelevant, there is no required Firehose stream, and X-Ray is not restricted to Windows Beanstalk."
+  },
+  {
+    domain: 5,
+    service: "X-Ray",
+    q: "On Elastic Beanstalk, which IAM principal must have permissions for the X-Ray daemon to write trace data to the X-Ray service?",
+    options: [
+      "The EC2 instance profile attached to the Beanstalk environment's instances",
+      "The IAM user that deployed the Beanstalk application version",
+      "A resource-based policy attached directly to the X-Ray service",
+      "The CodePipeline service role used to promote the environment"
+    ],
+    explanation: "The X-Ray daemon runs on the Beanstalk EC2 instances and therefore needs permissions via the EC2 instance profile. The deploying IAM user's permissions don't apply at runtime, X-Ray does not use a resource-based trust policy in this way, and CodePipeline's role is for deployments, not runtime trace submission."
+  },
+  {
+    domain: 5,
+    service: "X-Ray",
+    q: "Which statement correctly describes how X-Ray integrates with common AWS compute services?",
+    options: [
+      "On EC2 and ECS you deploy the X-Ray agent (standalone or as a Docker sidecar); Lambda and API Gateway integrate natively; Elastic Beanstalk can auto-install and configure the agent for you",
+      "X-Ray is only available for Lambda-based workloads; EC2 and ECS must export to CloudWatch metrics instead",
+      "All integrations are fully managed with no agent anywhere — X-Ray transparently observes every AWS service",
+      "X-Ray integrates only with on-premises applications via a daemon installed on the host"
+    ],
+    explanation: "The documented integrations are EC2 agent, ECS agent-or-sidecar, native Lambda, native API Gateway, and Beanstalk auto-install. X-Ray is not Lambda-only, it is not fully transparent on all services, and it is not limited to on-premises."
+  },
+  {
+    domain: 5,
+    service: "X-Ray",
+    q: "A team is deploying a multi-container Docker application on Elastic Beanstalk and expects the X-Ray daemon to be present automatically, as it is on single-container platforms. What is actually true?",
+    options: [
+      "In multi-container Docker environments the X-Ray daemon is NOT provided automatically; you must run it yourself, typically as a separate container alongside your application",
+      "Multi-container Docker environments always include two X-Ray daemons (one per host) by default",
+      "X-Ray is incompatible with multi-container Docker on Beanstalk — teams must migrate to ECS",
+      "Beanstalk installs the daemon but disables it on multi-container platforms until the instance is rebooted"
+    ],
+    explanation: "The documented caveat is that multi-container Docker on Elastic Beanstalk does not automatically provide the X-Ray daemon — you need to run it yourself (for example as a separate container in your Docker Compose configuration). X-Ray is still usable, you don't need to migrate to ECS, and there is no 'disabled until reboot' behavior."
   }
 ];

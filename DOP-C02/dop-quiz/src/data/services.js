@@ -44,4 +44,12 @@ export const SERVICES = [
   { id: "EventBridge",                       domain: 4 },
   { id: "Athena",                            domain: 4 },
   { id: "Kinesis",                           domain: 4 },
+  { id: "EventBridge",                       domain: 5 },
+  { id: "S3 Event Notifications",            domain: 5 },
+  { id: "Health Dashboard",                  domain: 5 },
+  { id: "Health Event Notifications",        domain: 5 },
+  { id: "EC2 Status Checks",                 domain: 5 },
+  { id: "CloudTrail",                        domain: 5 },
+  { id: "SQS DLQ",                           domain: 5 },
+  { id: "X-Ray",                             domain: 5 },
 ];

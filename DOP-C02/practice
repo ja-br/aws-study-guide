@@ -1,0 +1,70 @@
+A company needs to deploy a new AWS Serverless Application Model (AWS SAM) application. The SAM application consists of an Amazon API Gateway HTTP API and AWS Lambda functions.
+
+The company has an existing custom service to handle authentication. The existing authentication service is not compatible with existing standards, such as OpenID and SAML. For authentication, the SAM application needs to verify an HTTP header and token that are contained within each request by calling the existing authentication service.
+
+Which authentication mechanism for the SAM application will meet these requirements?
+--
+
+A company runs a web application on Amazon EC2 instances behind an Application Load Balancer (ALB). The EC2 instances run in an Amazon EC2 Auto Scaling group across multiple Availability Zones. According to the company's security policy, any EC2 instance that is launched must be registered with the company’s auditing service before the EC2 instance can start processing transactions.
+
+Which solution will meet these requirements?
+--
+
+A DevOps engineer manages several AWS accounts by using AWS Organizations. The DevOps engineer needs to monitor specific service quotas on a daily basis in all the accounts. The DevOps engineer also needs to receive notifications whenever service usage reaches 80% of the quota.
+
+Which solution will meet these requirements?
+--
+
+A DevOps engineer used a script that calls the AWS Elastic Beanstalk CLI to launch an Elastic Beanstalk application in development and test environments during initial development.
+
+When the application was ready for release, the production environment required some custom settings. The DevOps engineer added an .ebextensions file to the application source bundle to do the following:
+
+    Change several environment variables (log level and other variables)
+    Change the instance type from t3.small to t3.medium Amazon EC2 instances
+
+The DevOps engineer ran the script with no errors. The new production environment contained the new environment variable values. However, the new environment still ran on t3.small instances instead of the t3.medium instances specified in the .ebextensions file.
+
+What is the root cause of this issue?
+--
+
+A company hired a third-party development team to build a web-based application. The application runs on Amazon EC2 instances across multiple Availability Zones. The application writes JSON log files locally. Each log entry is a separate JSON object. The log entries include application events and informational entries that contain personally identifiable information (PII) such as phone number and address.
+
+The third-party team wants to access the application logs on the EC2 instances to perform root cause analysis when issues and errors occur. The third-party team needs access to the application data but must not be able to access the PII. The company must grant the third-party team access to view the application log files without providing SSH access directly to the production servers.
+
+Which solution will meet these requirements MOST cost-effectively?
+--
+
+A software development team uses AWS CodeBuild and AWS CodePipeline to build and test code before release. The same code branch is built and deployed by two different pipelines. One pipeline builds and deploys the code into a development environment where the developers test the code. The other pipeline builds and deploys the code into a user acceptance testing (UAT) environment. Business users report a defect in the application that runs in the UAT environment. The defect is not present in the development environment that runs the same code version.
+
+Which approach should a DevOps engineer take to ensure that identical build artifacts are deployed across identical environments?
+--
+
+A company runs a hybrid cloud environment. The company is planning the deployment strategy for an application that will run on Amazon EC2 instances and on-premises servers. The strategy will use AWS CodeDeploy.
+
+What is the MOST secure way for the company to use CodeDeploy with the on-premises servers?
+--
+
+A company runs an application on Amazon EC2 instances that are spread across multiple Availability Zones. The application processes messages from an Amazon Simple Queue Service (Amazon SQS) queue. Occasionally, the number of messages increases significantly and causes the application to experience delays in processing the messages.
+
+To address the delays, the company creates an Amazon EC2 Auto Scaling group. The company implements a target tracking scaling policy that is based on average CPU utilization of the Auto Scaling group. However, the company finds that the EC2 instances are not scaling in a timely manner.
+
+Which solution will resolve this issue in the MOST reliable manner?
+--
+
+A company is writing a web application. The application includes an Amazon API Gateway API that is integrated with AWS Lambda functions. The Lambda functions store data in an Amazon DynamoDB table. The Lambda functions store session information in an Amazon ElastiCache (Redis OSS) cluster.
+
+What should a DevOps engineer do to deploy the application in the MOST operationally efficient manner?
+--
+
+A company runs a RESTful web service. The company deploys the API by using Amazon API Gateway. The API uses AWS Lambda custom integration to call the business logic, which is implemented in Lambda functions. Amazon Route 53 is used for DNS.
+
+The company's DevOps team has deployed a new version of the Lambda functions, and the Lambda functions are ready to receive traffic. The DevOps team wants to send 10% of the production traffic to the new Lambda functions for a week before fully converting to the new release. The deployment solution must have no impact on users of the web service.
+
+What is the MOST operationally efficient deployment solution that meets these requirements?
+--
+
+A company runs an application on Amazon EC2 instances behind an Application Load Balancer (ALB). The instances run in an Amazon EC2 Auto Scaling group across multiple Availability Zones. The company uses an AWS CodeDeploy deployment group to manage blue/green deployments of the application. Currently, operators monitor the application logs on the EC2 instances. The operators manually instruct CodeDeploy to roll back if the error rate is too high. A DevOps engineer needs to automate this part of the deployment process.
+
+Which combination of steps should the DevOps engineer take to replace this manual task?
+--
+
