@@ -1,6 +1,6 @@
 <script>
   import { DOMAINS } from '../data/domains.js';
-  import { quiz, questionCounts, domainQuestionCounts } from '../lib/state.svelte.js';
+  import { quiz, questionCounts, domainQuestionCounts, svcKey } from '../lib/state.svelte.js';
 
   let { domainNum, services } = $props();
 
@@ -9,7 +9,7 @@
 
   const isChecked = $derived(
     services.length > 0
-      ? services.every(s => quiz.selectedServices.has(s.id))
+      ? services.every(s => quiz.selectedServices.has(svcKey(domainNum, s.id)))
       : quiz.selectedDomains.has(domainNum)
   );
 
@@ -62,7 +62,8 @@
   {#if services.length > 0 && isExpanded}
     <div class="domain-services">
       {#each services as svc (svc.id)}
-        {@const svcChecked = quiz.selectedServices.has(svc.id)}
+        {@const key = svcKey(domainNum, svc.id)}
+        {@const svcChecked = quiz.selectedServices.has(key)}
         <div
           class="service-row"
           class:checked={svcChecked}
@@ -70,8 +71,8 @@
           role="checkbox"
           aria-checked={svcChecked}
           tabindex="0"
-          onclick={() => quiz.toggleService(svc.id)}
-          onkeydown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); quiz.toggleService(svc.id); } }}
+          onclick={() => quiz.toggleService(key)}
+          onkeydown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); quiz.toggleService(key); } }}
         >
           <div class="service-checkbox" aria-hidden="true">
             <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
@@ -79,7 +80,7 @@
             </svg>
           </div>
           <span class="service-badge" style:background={domain.bg} style:color={domain.color}>{svc.id}</span>
-          <span class="service-count">{questionCounts[svc.id] || 0}q</span>
+          <span class="service-count">{questionCounts[key] || 0}q</span>
         </div>
       {/each}
     </div>

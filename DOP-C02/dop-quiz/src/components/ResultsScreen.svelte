@@ -1,6 +1,6 @@
 <script>
   import { DOMAINS } from '../data/domains.js';
-  import { quiz } from '../lib/state.svelte.js';
+  import { quiz, svcKey } from '../lib/state.svelte.js';
 
   const totalCorrect = $derived(
     Object.values(quiz.results).reduce((s, r) => s + r.correct, 0)
@@ -20,7 +20,7 @@
     const uniqueServices = [...new Set(domainServices)];
     let domainCorrect = 0, domainTotal = 0;
     uniqueServices.forEach(svcId => {
-      const r = quiz.results[svcId];
+      const r = quiz.results[svcKey(domainNum, svcId)];
       if (r) { domainCorrect += r.correct; domainTotal += r.total; }
     });
     if (domainTotal === 0) return null;
@@ -61,7 +61,7 @@
         </div>
 
         {#each bd.uniqueServices as svcId (svcId)}
-          {@const r = quiz.results[svcId]}
+          {@const r = quiz.results[svcKey(domainNum, svcId)]}
           {#if r && r.total > 0}
             {@const ratio = r.correct / r.total}
             <div class="breakdown-row">

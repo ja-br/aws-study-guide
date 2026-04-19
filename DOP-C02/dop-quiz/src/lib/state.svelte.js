@@ -3,6 +3,8 @@ import { SERVICES } from '../data/services.js';
 import { QUESTIONS } from '../data/questions.js';
 import { shuffle, toggleInSet, validateQuestions } from './utils.js';
 
+export const svcKey = (domain, svcId) => `${domain}:${svcId}`;
+
 // Precomputed lookups
 export const servicesByDomain = {};
 Object.keys(DOMAINS).forEach(d => { servicesByDomain[d] = []; });
@@ -12,7 +14,8 @@ SERVICES.forEach(s => {
 
 export const questionCounts = {};
 QUESTIONS.forEach(q => {
-  questionCounts[q.service] = (questionCounts[q.service] || 0) + 1;
+  const k = svcKey(q.domain, q.service);
+  questionCounts[k] = (questionCounts[k] || 0) + 1;
 });
 
 export const domainQuestionCounts = {};
@@ -25,7 +28,7 @@ validateQuestions(QUESTIONS, DOMAINS, SERVICES);
 
 class QuizState {
   screen = $state('menu');
-  selectedServices = $state(new Set(SERVICES.map(s => s.id)));
+  selectedServices = $state(new Set(SERVICES.map(s => svcKey(s.domain, s.id))));
   expandedDomains = $state(new Set());
   queue = $state([]);
   currentIdx = $state(0);
@@ -39,7 +42,7 @@ class QuizState {
     for (const key of Object.keys(DOMAINS)) {
       const domainNum = Number(key);
       const svcs = servicesByDomain[domainNum] || [];
-      if (svcs.length > 0 && svcs.every(s => this.selectedServices.has(s.id))) {
+      if (svcs.length > 0 && svcs.every(s => this.selectedServices.has(svcKey(domainNum, s.id)))) {
         set.add(domainNum);
       }
     }
@@ -58,30 +61,30 @@ class QuizState {
   get totalSelected() { return this.selectedServices.size; }
 
   get canStart() {
-    return this.totalSelected > 0 && QUESTIONS.some(q => this.selectedServices.has(q.service));
+    return this.totalSelected > 0 && QUESTIONS.some(q => this.selectedServices.has(svcKey(q.domain, q.service)));
   }
 
   toggleDomain(domainNum) {
     const svcs = servicesByDomain[domainNum] || [];
     const allSelected = svcs.length > 0
-      ? svcs.every(s => this.selectedServices.has(s.id))
+      ? svcs.every(s => this.selectedServices.has(svcKey(domainNum, s.id)))
       : this.selectedDomains.has(domainNum);
 
     const next = new Set(this.selectedServices);
     if (allSelected) {
-      svcs.forEach(s => next.delete(s.id));
+      svcs.forEach(s => next.delete(svcKey(domainNum, s.id)));
     } else {
-      svcs.forEach(s => next.add(s.id));
+      svcs.forEach(s => next.add(svcKey(domainNum, s.id)));
     }
     this.selectedServices = next;
   }
 
-  toggleService(svcId) {
-    this.selectedServices = toggleInSet(this.selectedServices, svcId);
+  toggleService(key) {
+    this.selectedServices = toggleInSet(this.selectedServices, key);
   }
 
   selectAll() {
-    this.selectedServices = new Set(SERVICES.map(s => s.id));
+    this.selectedServices = new Set(SERVICES.map(s => svcKey(s.domain, s.id)));
   }
 
   deselectAll() {
@@ -93,7 +96,7 @@ class QuizState {
   }
 
   startQuiz(questions) {
-    const filtered = questions || QUESTIONS.filter(q => this.selectedServices.has(q.service));
+    const filtered = questions || QUESTIONS.filter(q => this.selectedServices.has(svcKey(q.domain, q.service)));
     if (filtered.length === 0) return;
     const shuffled = shuffle(filtered);
     this.queue = shuffled;
@@ -104,7 +107,8 @@ class QuizState {
 
     const r = {};
     shuffled.forEach(q => {
-      if (!r[q.service]) r[q.service] = { correct: 0, total: 0 };
+      const k = svcKey(q.domain, q.service);
+      if (!r[k]) r[k] = { correct: 0, total: 0 };
     });
     this.results = r;
     this.screen = 'quiz';
@@ -115,12 +119,13 @@ class QuizState {
     this.answered = true;
 
     const q = this.queue[this.currentIdx];
+    const k = svcKey(q.domain, q.service);
     const r = { ...this.results };
-    r[q.service] = { ...r[q.service] };
-    r[q.service].total++;
+    r[k] = { ...r[k] };
+    r[k].total++;
 
     if (isCorrect) {
-      r[q.service].correct++;
+      r[k].correct++;
     } else {
       this.missedQuestions = [...this.missedQuestions, q];
     }
