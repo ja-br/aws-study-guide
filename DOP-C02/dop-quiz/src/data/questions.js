@@ -4013,5 +4013,966 @@ export const QUESTIONS = [
       "Beanstalk installs the daemon but disables it on multi-container platforms until the instance is rebooted"
     ],
     explanation: "The documented caveat is that multi-container Docker on Elastic Beanstalk does not automatically provide the X-Ray daemon — you need to run it yourself (for example as a separate container in your Docker Compose configuration). X-Ray is still usable, you don't need to migrate to ECS, and there is no 'disabled until reboot' behavior."
+  },
+  /* -- Config (8) -- */
+  {
+    domain: 6,
+    service: "Config",
+    q: "A security team wants to STOP engineers from creating security groups that allow unrestricted SSH from 0.0.0.0/0. They plan to use an AWS Config managed rule for this. What is the fundamental problem with this approach?",
+    options: [
+      "AWS Config evaluates and reports on compliance but does not prevent non-compliant actions — preventing creation requires a Service Control Policy or IAM policy",
+      "Config managed rules cannot evaluate security group ingress rules, only egress",
+      "Config rules only run every 24 hours, so the insecure security group would exist for up to a day",
+      "Config cannot be enabled in a region that has no Configuration Recorder"
+    ],
+    explanation: "Config Rules evaluate and report on compliance status but do not prevent non-compliant actions — they provide visibility and assessment only. To actually block the insecure action you need a preventive control such as an SCP. Config does evaluate security groups, and rules can run on configuration change (not only on a schedule)."
+  },
+  {
+    domain: 6,
+    service: "Config",
+    q: "You need a Config rule that evaluates a resource type not covered by any AWS managed rule. What is the correct approach?",
+    options: [
+      "Author a custom Config rule backed by an AWS Lambda function that returns the evaluation result",
+      "File a support case asking AWS to publish a new managed rule",
+      "Write a CloudWatch alarm that fires when the resource is created",
+      "Use Systems Manager Inventory to evaluate the resource instead"
+    ],
+    explanation: "For requirements not covered by managed rules, you can define custom Config rules backed by AWS Lambda functions. CloudWatch alarms evaluate metrics, not resource configuration, and SSM Inventory does not produce Config compliance findings."
+  },
+  {
+    domain: 6,
+    service: "Config",
+    q: "What is the role of an AWS Config Configuration Recorder?",
+    options: [
+      "It stores configurations of resources as configuration items — a point-in-time view created whenever a change is detected; it must exist before Config can track resources",
+      "It evaluates resources against Config rules on a schedule",
+      "It delivers Config snapshots to an S3 bucket but does not detect changes",
+      "It aggregates findings from multiple accounts into a central account"
+    ],
+    explanation: "The Configuration Recorder captures point-in-time configuration items whenever a resource change is detected and must be created before Config can track resources. Rule evaluation is separate; S3 delivery is a delivery channel; cross-account aggregation is done by aggregators."
+  },
+  {
+    domain: 6,
+    service: "Config",
+    q: "You want to auto-remediate non-compliant resources detected by Config, including complex remediation logic that goes beyond a simple runbook step. How should you architect this?",
+    options: [
+      "Configure a Config remediation that runs an SSM Automation document (runbook); have the runbook invoke an AWS Lambda function for the complex logic",
+      "Write an EventBridge rule that invokes Config to fix the resource",
+      "Use a Config rule's built-in 'fix' action; custom logic is declared inside the rule itself",
+      "Only AWS-managed runbooks can run — custom logic is not supported by Config remediation"
+    ],
+    explanation: "Config remediations run via SSM Automation documents, and custom automation documents can invoke Lambda functions to perform complex remediation actions beyond what the runbook itself can do. You can also configure remediation retries if the resource is still non-compliant on the first attempt."
+  },
+  {
+    domain: 6,
+    service: "Config",
+    q: "A security team wants a single YAML artifact that deploys a curated set of Config rules AND remediations together, organization-wide, with parameters so it can be reused across different configurations. What should they use?",
+    options: [
+      "A Conformance Pack deployed via a delegated administrator account",
+      "An Organizational Rule",
+      "An SSM Automation document",
+      "A CloudFormation StackSet of individual Config rule resources"
+    ],
+    explanation: "A Conformance Pack is a YAML bundle of Config rules and remediations, supports parameters, and can be deployed organization-wide via a delegated administrator. Organizational Rules are single rules (not bundles) and don't bundle remediations. StackSets of individual rules miss the parameterized-bundle semantics of a pack."
+  },
+  {
+    domain: 6,
+    service: "Config",
+    q: "How does an AWS Config aggregator simplify multi-account compliance monitoring when AWS Organizations is used?",
+    options: [
+      "Rules are created in each source account and the aggregator centralizes data without requiring individual authorization per source account",
+      "The aggregator deploys rules into every account in the organization and evaluates them centrally",
+      "The aggregator replaces the per-account Configuration Recorder so only one recorder is needed",
+      "It forwards CloudTrail events and is a replacement for Config in source accounts"
+    ],
+    explanation: "With Organizations, no individual authorization is required per source account — rules are created in each individual source AWS account and then centralized in the aggregator account. The aggregator aggregates data; it doesn't deploy rules (use StackSets for that) or replace the per-account Configuration Recorder."
+  },
+  {
+    domain: 6,
+    service: "Config",
+    q: "Which of these differences between an Organizational Rule and a Conformance Pack is correct?",
+    options: [
+      "An Organizational Rule applies only within AWS Organizations and is a single rule, while a Conformance Pack is a bundle of rules and remediations that can also be deployed standalone",
+      "An Organizational Rule is a bundle of rules, while a Conformance Pack is always a single rule",
+      "Only Conformance Packs can be applied in AWS Organizations; Organizational Rules work for standalone accounts",
+      "Organizational Rules contain remediations; Conformance Packs do not"
+    ],
+    explanation: "Organizational Rules are a single rule scoped to Organizations; Conformance Packs bundle multiple rules plus remediations and can be deployed standalone or organization-wide. The other options invert these facts."
+  },
+  {
+    domain: 6,
+    service: "Config",
+    q: "An organization wants to use CloudFormation StackSets to enable the Config Configuration Recorder in every account, and also wants to guarantee no user can later disable or delete Config. What additional control should they add?",
+    options: [
+      "An SCP at the organization level that denies disabling or deleting AWS Config",
+      "A Config rule that flags accounts with no recorder",
+      "An IAM policy on the management account only",
+      "A Lambda function that re-enables Config every minute"
+    ],
+    explanation: "Per the notes, you can enable the Configuration Recorder using CloudFormation StackSets and attach an SCP at the organization level to prevent users from disabling or deleting AWS Config. A rule that merely flags non-compliance does not prevent disablement, and an IAM policy on the management account alone doesn't cover member accounts."
+  },
+  /* -- Organizations (7) -- */
+  {
+    domain: 6,
+    service: "Organizations",
+    q: "An administrator attaches an SCP to the root of the organization that denies `s3:*`. They are surprised that users in the management account are unaffected. Why?",
+    options: [
+      "SCPs do not apply to the management account — it always has full permissions",
+      "SCPs require All Features mode, which this organization has not enabled",
+      "Deny statements in SCPs are ignored unless an explicit allow exists at the OU level",
+      "The management account must be moved into an OU before SCPs apply to it"
+    ],
+    explanation: "SCPs apply at the OU or account level but do not apply to the management account, which always has full permissions. Because of this, the management account should not host workloads that need SCP guardrails. The other options are not how SCPs work."
+  },
+  {
+    domain: 6,
+    service: "Organizations",
+    q: "Which statement correctly describes how Service Control Policy evaluation works?",
+    options: [
+      "SCPs use an explicit allow model — permissions must be allowed from the root down through each OU in the direct path; nothing is allowed by default",
+      "SCPs only deny — if no SCP denies an action, it is allowed",
+      "An SCP attached to an OU overrides any SCP attached to the root above it",
+      "SCPs grant IAM permissions to users and roles"
+    ],
+    explanation: "SCPs use an explicit allow model — permissions must be explicitly allowed from the root down through each OU in the direct path, and nothing is allowed by default. SCPs themselves grant no permissions to identities; they set the maximum permissions an account can use."
+  },
+  {
+    domain: 6,
+    service: "Organizations",
+    q: "Your organization is currently in Consolidated Billing mode and you want to apply SCPs. What must you do, and what is the catch?",
+    options: [
+      "Enable All Features mode; invited accounts must approve the transition, and once enabled you cannot switch back to Consolidated Billing",
+      "Create a new organization and migrate accounts; SCPs are incompatible with an existing billing-only org",
+      "Nothing — SCPs work in Consolidated Billing mode but must be attached directly to IAM users",
+      "Purchase a separate AWS Organizations subscription"
+    ],
+    explanation: "All Features mode is required for SCPs; invited accounts must approve the transition, and once enabled you cannot switch back to Consolidated Billing. There's no separate subscription, and SCPs never attach to IAM principals directly."
+  },
+  {
+    domain: 6,
+    service: "Organizations",
+    q: "A team creates a NEW member account via the AWS Organizations API. Another team later INVITES an existing standalone account to join the same organization. How does the Organization Account Access Role behave in each case?",
+    options: [
+      "It is created automatically in the new member account; for the invited existing account you must create the role manually",
+      "It is created automatically in both cases",
+      "It must be created manually in both cases",
+      "It is created automatically for invited accounts but not for new accounts"
+    ],
+    explanation: "When a member account is created through the Organizations API, the IAM role is created automatically. For invited existing accounts you must create the Organization Account Access Role manually. The other options invert these facts."
+  },
+  {
+    domain: 6,
+    service: "Organizations",
+    q: "The payer account of an organization wants to stop sharing Reserved Instance discounts with one specific member account. Is this possible?",
+    options: [
+      "Yes — the payer account can disable Reserved Instance discount sharing and Savings Plan discount sharing for specific accounts",
+      "No — consolidated billing always shares RI and Savings Plan discounts across all member accounts",
+      "Only by moving that member account out of the organization",
+      "Only by upgrading to All Features mode and attaching a billing SCP"
+    ],
+    explanation: "The payer account can disable RI and Savings Plan discount sharing for specific accounts. When sharing is disabled, those accounts no longer receive the shared hourly cost benefit. SCPs don't control billing, and the account doesn't need to leave the org."
+  },
+  {
+    domain: 6,
+    service: "Organizations",
+    q: "What is the correct procedure for moving a member account from organization A to organization B?",
+    options: [
+      "Send an invitation from organization B to the member account; the member account owner accepts the invitation, and the account is transferred",
+      "The management account of organization A issues a TransferAccount API call to organization B",
+      "Delete the account from organization A; a new account is then created in organization B with the same ID",
+      "SCPs on both organizations are merged and the account is automatically assigned to the larger one"
+    ],
+    explanation: "To move a member account, organization B sends an invitation and the member account owner accepts it. There is no TransferAccount API, accounts cannot be deleted and recreated with the same ID, and SCPs are never merged across organizations."
+  },
+  {
+    domain: 6,
+    service: "Organizations",
+    q: "Which of the following is a genuine multi-account strategy benefit called out in the notes?",
+    options: [
+      "Per-account service quotas and limits, better resource isolation, and the ability to designate an isolated account dedicated to centralized logging",
+      "Automatic DDoS protection at layer 7 for every account",
+      "A single IAM user database that spans all accounts without federation",
+      "Elimination of the need for CloudTrail because Organizations provides audit logs"
+    ],
+    explanation: "The documented benefits are resource isolation, per-account quotas/limits, and a dedicated central logging account. Organizations does not replace CloudTrail (you should enable CloudTrail on all accounts and ship to a central S3 bucket), IAM users remain account-scoped, and DDoS protection comes from Shield/WAF."
+  },
+  /* -- Control Tower (7) -- */
+  {
+    domain: 6,
+    service: "Control Tower",
+    q: "Which statement most accurately describes how Control Tower relates to AWS Organizations?",
+    options: [
+      "Control Tower runs on top of AWS Organizations and automatically sets up and configures the organization for you",
+      "Control Tower is a replacement for AWS Organizations and cannot coexist with it",
+      "Control Tower only works in a single account and has no relationship with Organizations",
+      "Control Tower is a client-side tool that configures Organizations from your laptop"
+    ],
+    explanation: "Control Tower runs on top of AWS Organizations and automatically sets up and configures the organization for you. It complements, rather than replaces, Organizations."
+  },
+  {
+    domain: 6,
+    service: "Control Tower",
+    q: "What is the difference between a Preventive guardrail and a Detective guardrail in Control Tower?",
+    options: [
+      "Preventive guardrails are implemented with SCPs to block violating actions; Detective guardrails are implemented with AWS Config rules that identify non-compliant resources",
+      "Preventive guardrails use AWS Config rules; Detective guardrails use SCPs",
+      "Preventive guardrails are IAM policies attached to users; Detective guardrails are CloudWatch alarms",
+      "There is no difference — both are names for the same set of rules"
+    ],
+    explanation: "Preventive guardrails are SCPs that prevent violating actions; Detective guardrails are AWS Config rules that identify and report on non-compliant resources. Option B swaps them; IAM policies and CloudWatch alarms are not the implementation mechanisms."
+  },
+  {
+    domain: 6,
+    service: "Control Tower",
+    q: "A team asks what happens when Account Factory provisions a new account. How can downstream automation run on each new-account event?",
+    options: [
+      "Account Factory publishes an event to EventBridge when a new account is created; a rule can invoke a Lambda function or send to SNS",
+      "Account Factory writes a record to DynamoDB that applications must poll",
+      "Account Factory emails the root user; automation must parse the email",
+      "There is no native event integration — you must scrape the Control Tower console"
+    ],
+    explanation: "When a new account is created through Account Factory, an event is published to EventBridge, which can trigger downstream automation such as a Lambda function or SNS topic. No polling or email parsing is required."
+  },
+  {
+    domain: 6,
+    service: "Control Tower",
+    q: "Your organization wants a GitOps-style workflow that deploys CloudFormation templates and SCPs across the landing zone and all managed accounts, with new accounts automatically receiving the same customizations. Which framework fits?",
+    options: [
+      "Customizations for AWS Control Tower (CfCT), using CodePipeline + CodeBuild + Step Functions + StackSets",
+      "Account Factory Customization (AFC) blueprints alone",
+      "AWS Config Conformance Packs only",
+      "AWS Firewall Manager policies"
+    ],
+    explanation: "CfCT is the GitOps-style customization framework: sources in S3/CodeCommit, CodePipeline + CodeBuild + Step Functions orchestrate deployment as CloudFormation StackSets, and on new-account creation an EventBridge event invokes the pipeline so new accounts auto-receive customizations. AFC is for per-account blueprints at creation time and only one blueprint can be deployed per account; Conformance Packs and Firewall Manager don't cover organization-wide custom resource deployment."
+  },
+  {
+    domain: 6,
+    service: "Control Tower",
+    q: "What is an important constraint of Account Factory Customization (AFC) blueprints?",
+    options: [
+      "Only one blueprint can be deployed per account; AWS recommends NOT using the management account as the blueprint hub account",
+      "Blueprints can only be authored in JSON, not YAML",
+      "Blueprints must be deployed via CfCT — AFC cannot deploy them directly",
+      "Blueprints apply only to accounts already onboarded before Control Tower was enabled"
+    ],
+    explanation: "Only one blueprint can be deployed per account, and AWS recommends not using the management account as the blueprint hub. Blueprints are Service Catalog products backed by CloudFormation templates; they can be used during account creation (AFC) without CfCT."
+  },
+  {
+    domain: 6,
+    service: "Control Tower",
+    q: "Which components make up a Control Tower Landing Zone?",
+    options: [
+      "AWS Organizations, Account Factory, OUs, SCPs, IAM Identity Center, and Guardrails",
+      "Only SCPs and IAM Identity Center — other services are external",
+      "A single VPC that spans all accounts, plus Route 53 Resolver",
+      "CloudFormation StackSets alone"
+    ],
+    explanation: "The Landing Zone consists of AWS Organizations, Account Factory, OUs, SCPs, IAM Identity Center, and Guardrails. The other options omit or invent components."
+  },
+  {
+    domain: 6,
+    service: "Control Tower",
+    q: "When Control Tower is deployed, how is AWS Config set up in the managed accounts?",
+    options: [
+      "Config is automatically enabled in all enabled regions across managed accounts using StackSets, with aggregators for centralized rule management and CloudTrail for centralized API logging",
+      "Config remains disabled and must be enabled manually per account",
+      "Config is enabled only in the management account",
+      "Config is replaced by Trusted Advisor for detective controls"
+    ],
+    explanation: "Control Tower automatically enables Config in all enabled regions across managed accounts, delivers configuration history and snapshots to a central account, and uses StackSets, Config aggregators, and CloudTrail. Config is not replaced by Trusted Advisor, and it is enabled beyond just the management account."
+  },
+  /* -- IAM Identity Center (7) -- */
+  {
+    domain: 6,
+    service: "IAM Identity Center",
+    q: "Your company uses Okta as its corporate IdP. You federate Okta to IAM Identity Center via SAML 2.0 and notice that users and groups do NOT appear automatically in IAM Identity Center. What must you add to get automatic synchronization?",
+    options: [
+      "Configure SCIM provisioning — SAML 2.0 handles authentication but does not provide a way to query the IdP for users and groups; SCIM handles automatic user/group synchronization",
+      "Switch from SAML 2.0 to OIDC in Identity Center",
+      "Re-issue the Okta X.509 certificate with the Provisioning extended attribute",
+      "Enable MFA — identity sync only happens once MFA is set up"
+    ],
+    explanation: "SAML 2.0 does not provide a way to query the IdP to learn about users and groups; SCIM is a complement to SAML 2.0 that handles automatic provisioning, as long as the external IdP supports SCIM. Identity Center does not use OIDC for this flow, and neither certificate attributes nor MFA drive identity sync."
+  },
+  {
+    domain: 6,
+    service: "IAM Identity Center",
+    q: "What actually happens in an AWS account when a permission set is assigned to a group for that account?",
+    options: [
+      "IAM Identity Center automatically creates a corresponding IAM role in that account; when the user logs in, they assume that role and receive the permissions in the permission set",
+      "The permissions are copied into each user's existing IAM user record in that account",
+      "The permission set becomes an SCP attached to the account",
+      "The account must already contain a matching IAM user for every member of the group"
+    ],
+    explanation: "IAM Identity Center creates a corresponding IAM role in the target account for the permission set, and the user assumes that role on sign-in. Permission sets are not SCPs, not per-user IAM users, and not static policy copies."
+  },
+  {
+    domain: 6,
+    service: "IAM Identity Center",
+    q: "A company wants to gate EC2 access by region based on an attribute stored on each user (for example, `region = eu-west-1`), without writing a separate IAM policy for every combination. Which Identity Center feature supports this?",
+    options: [
+      "Attribute-Based Access Control (ABAC) — write permission set policies that reference user attributes via `aws:PrincipalTag/...` conditions",
+      "Permission sets alone — attributes are inferred from the IAM role name",
+      "External IdP group mapping — the IdP group name controls region",
+      "SCPs — they can read user attributes at runtime"
+    ],
+    explanation: "ABAC in Identity Center lets you reference user attributes (like region) in permission set policies using `aws:PrincipalTag/...` conditions. Permission sets don't infer attributes from role names, IdP group mapping doesn't provide runtime attribute evaluation, and SCPs don't consume per-user attributes."
+  },
+  {
+    domain: 6,
+    service: "IAM Identity Center",
+    q: "Which MFA enforcement modes does IAM Identity Center support, and what is the tradeoff?",
+    options: [
+      "Always-on (MFA on every sign-in, most secure) and Context-aware (MFA only when context changes, balances security with user experience)",
+      "Opt-in and Opt-out only — there is no enforcement mode",
+      "Hardware-only and Software-only",
+      "Per-user and Per-group — there is no service-wide setting"
+    ],
+    explanation: "Identity Center supports Always-on and Context-aware MFA enforcement, and users can be prompted to register MFA on first sign-in. Supported MFA methods include authenticator apps, FIDO2 keys, and built-in platform authenticators — but those are methods, not enforcement modes."
+  },
+  {
+    domain: 6,
+    service: "IAM Identity Center",
+    q: "What are the two identity source options for IAM Identity Center?",
+    options: [
+      "A built-in identity store within Identity Center, or an external third-party IdP such as Active Directory, Okta, or OneLogin",
+      "AWS IAM users only, or AWS IAM roles only",
+      "Amazon Cognito user pools or Amazon Cognito identity pools",
+      "Microsoft Entra ID only — all other IdPs must proxy through Entra"
+    ],
+    explanation: "Identity Center supports a built-in identity store or integration with external IdPs such as AD, Okta, OneLogin, or other SAML 2.0 providers. Cognito, IAM users/roles, and Entra-only are not the documented options."
+  },
+  {
+    domain: 6,
+    service: "IAM Identity Center",
+    q: "A developer group needs admin access in 5 dev accounts and read-only access in 3 prod accounts. Which Identity Center approach is most efficient?",
+    options: [
+      "Create two permission sets (admin, read-only) and assign them to the same group per account — the same permission set is reused across many accounts",
+      "Create 8 separate IAM users per developer, one per account",
+      "Create 8 separate groups, one per account, and copy the developers into each",
+      "Attach an SCP to the developer group"
+    ],
+    explanation: "Permission sets can be applied to multiple accounts and multiple groups simultaneously; the same permission set definition is reused across environments. The other options either explode the number of principals or misuse SCPs, which don't attach to groups."
+  },
+  {
+    domain: 6,
+    service: "IAM Identity Center",
+    q: "When you assign a group to a SAML 2.0 business application in Identity Center, what does Identity Center provide automatically?",
+    options: [
+      "The integration URLs, X.509 certificates, and Service Provider (SP) metadata needed for federated authentication",
+      "A fully working OAuth client credential that bypasses SAML",
+      "A private VPN tunnel from the application to the IdP",
+      "An IAM role in every AWS account, regardless of whether the app needs AWS access"
+    ],
+    explanation: "Identity Center automatically provides the integration URLs, X.509 certificates, and SP metadata for the assigned application. OAuth, VPN tunnels, and cross-account IAM roles are not part of this flow."
+  },
+  /* -- WAF (8) -- */
+  {
+    domain: 6,
+    service: "WAF",
+    q: "A security team wants WAF to quickly block requests from IP addresses known to be malicious (spammers and other bad actors), using threat intelligence maintained by AWS rather than a custom list they must keep updated. Which managed rule group should they apply?",
+    options: [
+      "The Amazon IP Reputation List (an IP reputation rule group)",
+      "The Admin Protection baseline rule set",
+      "The AWS Managed Rules Bot Control Rule Set",
+      "The SQL database use-case rule set"
+    ],
+    explanation: "The Amazon IP Reputation List identifies IPs trusted by AWS and those flagged for malicious activity, allowing you to block spammers and known bad actors quickly. Admin Protection guards admin interfaces, Bot Control targets bots, and the SQL database set targets SQLi — none of those are IP-reputation driven."
+  },
+  {
+    domain: 6,
+    service: "WAF",
+    q: "A team is about to enable a new WAF rule, but is worried about false positives blocking real users. What is the safest first step?",
+    options: [
+      "Set the rule action to Count — matched requests are logged but still allowed through, so false positives can be measured before flipping to Block",
+      "Set the action to Block and monitor CloudWatch alarms",
+      "Set the action to CAPTCHA for all users",
+      "Set the action to Allow and add a rate-based rule instead"
+    ],
+    explanation: "Count evaluates the rule and logs matching requests but allows traffic to proceed — exactly the pattern for detecting false positives before enabling Block mode. Block would immediately impact real users, CAPTCHA is user-visible friction, and Allow undermines the rule entirely."
+  },
+  {
+    domain: 6,
+    service: "WAF",
+    q: "A company uses CloudFront in front of an Application Load Balancer and wants to ensure ONLY requests that originated from CloudFront reach the ALB — direct hits to the ALB DNS name must be blocked. What is the recommended pattern?",
+    options: [
+      "Have CloudFront add a custom HTTP header (for example X-Origin-Verify) with a secret value, and put a WAF Web ACL on the ALB that only allows requests containing that header and value",
+      "Put the ALB in a private subnet and use a NAT gateway for CloudFront",
+      "Attach a security group to the ALB that allows only the CloudFront public IP ranges, hard-coded",
+      "Enable Shield Advanced on the ALB — it automatically rejects non-CloudFront traffic"
+    ],
+    explanation: "The documented pattern is CloudFront adding a custom header (X-Origin-Verify) with a secret value, and a WAF Web ACL on the ALB that allows only requests containing that header and value. Private subnets don't block layer-7 access, hard-coded CloudFront IP ranges are brittle, and Shield doesn't enforce origin verification."
+  },
+  {
+    domain: 6,
+    service: "WAF",
+    q: "For the CloudFront + ALB X-Origin-Verify pattern, how should the secret header value be rotated to keep it secure?",
+    options: [
+      "Store the secret in AWS Secrets Manager with automatic rotation; on rotation, a Lambda function updates both the CloudFront custom header value and the WAF rule on the ALB",
+      "Hard-code the secret in the CloudFormation template and redeploy quarterly",
+      "Put the secret in a public S3 bucket so both CloudFront and WAF can read it",
+      "Rotate it manually by opening a support ticket"
+    ],
+    explanation: "The notes call for storing the secret in Secrets Manager with automatic rotation, and using a Lambda function to update both the CloudFront custom header value and the WAF rule when rotation occurs. The other options either leak the secret or prevent automation."
+  },
+  {
+    domain: 6,
+    service: "WAF",
+    q: "A very high-traffic site needs to send WAF logs for long-term storage and analysis. CloudWatch Logs throughput (~5 MB/s) is insufficient and S3's 5-minute delivery latency is fine. Which destination fits best?",
+    options: [
+      "Kinesis Data Firehose — its only throughput constraint is Firehose itself, and it can fan out to S3, Redshift, or OpenSearch",
+      "CloudWatch Logs with a higher-tier subscription",
+      "SNS — subscribe S3 directly to the WAF topic",
+      "SQS FIFO queues, one per Web ACL"
+    ],
+    explanation: "For high-volume WAF logging, Kinesis Data Firehose imposes only Firehose's own throughput limits and can deliver to S3, Redshift, OpenSearch, and others. CloudWatch Logs has the documented ~5 MB/s cap; SNS and SQS FIFO aren't the documented WAF log destinations."
+  },
+  {
+    domain: 6,
+    service: "WAF",
+    q: "Which set of resources can you associate a WAF Web ACL with?",
+    options: [
+      "Application Load Balancer, API Gateway, CloudFront distribution, and AWS AppSync",
+      "Only CloudFront distributions",
+      "Network Load Balancers and Route 53 hosted zones",
+      "EC2 instances directly through the VPC console"
+    ],
+    explanation: "WAF deploys on ALB (regional), API Gateway (regional/edge), CloudFront (global), and AppSync. NLB and Route 53 hosted zones are not WAF targets, and EC2 instances aren't associated with Web ACLs directly."
+  },
+  {
+    domain: 6,
+    service: "WAF",
+    q: "A site is being flooded by automated bots that complete legitimate-looking requests. Which rule action gives the best user experience for human traffic while still separating bots?",
+    options: [
+      "Use a silent challenge (or CAPTCHA for suspected bots) via Bot Control — a silent challenge differentiates bots from humans without presenting a visible challenge",
+      "Block all requests and rely on users retrying",
+      "Allow all requests and review logs later",
+      "Set every rule to Count — Count automatically challenges bots"
+    ],
+    explanation: "Silent challenge sends a challenge that differentiates bot traffic from human users without a visible prompt; CAPTCHA is the visible equivalent for stronger cases. Count only logs, Block hurts legitimate users, and Allow provides no protection."
+  },
+  {
+    domain: 6,
+    service: "WAF",
+    q: "Your stakeholder believes AWS WAF handles DDoS protection. What is the correct clarification?",
+    options: [
+      "WAF protects against layer 7 (HTTP/HTTPS) application attacks; DDoS protection (layers 3/4) is provided by AWS Shield",
+      "WAF handles DDoS at layer 7 and Shield handles it at layer 7 — both are required",
+      "WAF replaces Shield entirely and is sufficient on its own",
+      "Only Firewall Manager provides DDoS protection"
+    ],
+    explanation: "WAF is not used for DDoS protection — that is the role of AWS Shield. WAF specifically protects against layer 7 application attacks. Firewall Manager centralizes management but doesn't itself provide DDoS protection."
+  },
+  /* -- Shield (3) -- */
+  {
+    domain: 6,
+    service: "Shield",
+    q: "Which statement best distinguishes AWS Shield Standard from Shield Advanced?",
+    options: [
+      "Shield Standard is free and protects against common L3/L4 DDoS attacks; Shield Advanced adds the 24/7 Shield Response Team, advanced diagnostics, and automatic WAF rule creation in response to attacks",
+      "Shield Standard costs more than Shield Advanced but includes layer 7 protection",
+      "Shield Standard is optional and Shield Advanced is enabled by default",
+      "Shield Standard protects only EC2, while Shield Advanced protects only CloudFront"
+    ],
+    explanation: "Shield Standard is automatically enabled at no cost and covers L3/L4. Shield Advanced is paid and adds SRT access, diagnostics, and automatic WAF rule creation. The other options invert pricing or defaults."
+  },
+  {
+    domain: 6,
+    service: "Shield",
+    q: "An organization wants to deploy Shield Advanced across every account in its AWS Organization without touching each account individually. What service can do this?",
+    options: [
+      "AWS Firewall Manager can deploy a Shield Advanced policy across all accounts in an AWS Organization",
+      "AWS Control Tower automatically enables Shield Advanced on every guardrail",
+      "Trusted Advisor applies Shield Advanced when the security check fails",
+      "AWS Config remediations can buy and attach Shield Advanced"
+    ],
+    explanation: "Firewall Manager can deploy a Shield Advanced policy across all accounts in the organization. Control Tower guardrails, Trusted Advisor, and Config remediations don't provision Shield Advanced."
+  },
+  {
+    domain: 6,
+    service: "Shield",
+    q: "Which capability is unique to Shield Advanced (not Standard)?",
+    options: [
+      "Access to the AWS Shield Response Team (SRT) 24/7 during DDoS events",
+      "Automatic enablement at no cost",
+      "Layer 7 HTTP/HTTPS rule authoring",
+      "Integration with Route 53 health checks"
+    ],
+    explanation: "Shield Advanced uniquely provides SRT access, advanced diagnostics, and auto-created WAF rules during attacks. Free default enablement is Standard; L7 rule authoring is WAF; Route 53 health checks are unrelated."
+  },
+  /* -- Firewall Manager (5) -- */
+  {
+    domain: 6,
+    service: "Firewall Manager",
+    q: "A team launches a new ALB in one of the organization's accounts. They want the central security team's Web ACL to be applied automatically without the app team doing anything. Which Firewall Manager capability achieves this?",
+    options: [
+      "Automatic remediation — when a new resource is created in any account, Firewall Manager automatically applies the relevant security policies",
+      "AWS Config managed rules",
+      "CloudTrail event rules on the app team's account",
+      "An SCP that denies ALB creation until a Web ACL exists"
+    ],
+    explanation: "A key benefit of Firewall Manager is automatic remediation: new resources (such as ALBs) automatically get the relevant policies applied without manual intervention. Config rules report compliance, CloudTrail rules are reactive but not the documented mechanism, and the SCP approach would break legitimate creation."
+  },
+  {
+    domain: 6,
+    service: "Firewall Manager",
+    q: "Which policy types can AWS Firewall Manager manage centrally across an organization?",
+    options: [
+      "WAF Web ACL policies, Shield Advanced policies, security group policies, Network Firewall policies, and Route 53 Resolver DNS Firewall policies",
+      "Only WAF policies — all other firewalls must be managed per-account",
+      "IAM policies and SCPs",
+      "Only VPC security groups and NACLs"
+    ],
+    explanation: "Firewall Manager centrally manages WAF, Shield Advanced, security groups, Network Firewall, and Route 53 Resolver DNS Firewall policies. It does not manage IAM policies/SCPs (Organizations does) and is not limited to WAF alone."
+  },
+  {
+    domain: 6,
+    service: "Firewall Manager",
+    q: "When creating a Firewall Manager WAF policy, what is the difference between 'audit only' and 'auto-remediate'?",
+    options: [
+      "Audit only views compliance without taking action; auto-remediate automatically attaches the Web ACL to existing resources that do not already have it",
+      "Audit only blocks all traffic; auto-remediate allows all traffic",
+      "Audit only applies to CloudFront; auto-remediate applies to ALB",
+      "They are identical — it is purely a naming choice"
+    ],
+    explanation: "Audit only surfaces compliance findings without changing resources; auto-remediate automatically attaches the Web ACL. They differ in enforcement behavior, not target service or traffic decisions."
+  },
+  {
+    domain: 6,
+    service: "Firewall Manager",
+    q: "A Network Firewall policy in Firewall Manager can be deployed in which topologies?",
+    options: [
+      "Distributed (each VPC has its own firewall endpoint) or centralized (all firewall endpoints in a central VPC); existing Network Firewall configurations can also be imported",
+      "Only distributed — centralized is not supported",
+      "Only centralized — distributed is not supported",
+      "Only on CloudFront-attached VPCs"
+    ],
+    explanation: "Firewall Manager supports both distributed and centralized Network Firewall topologies, and allows import of existing Network Firewall configurations for centralized management."
+  },
+  {
+    domain: 6,
+    service: "Firewall Manager",
+    q: "You need a one-time WAF rule on a SINGLE Application Load Balancer — no organization-wide policy. Which service is the appropriate choice?",
+    options: [
+      "AWS WAF directly — Firewall Manager is for centralized, multi-account management",
+      "Firewall Manager is required even for a single ALB",
+      "Shield Advanced — WAF cannot attach to a single ALB",
+      "Control Tower guardrails"
+    ],
+    explanation: "When you need one-time protection for a single ALB or CloudFront distribution, WAF is the appropriate choice. Firewall Manager is the organizational layer for centralized management across many accounts — overkill for a single resource."
+  },
+  /* -- GuardDuty (9) -- */
+  {
+    domain: 6,
+    service: "GuardDuty",
+    q: "A security engineer wants GuardDuty to alert specifically on instances participating in mining pools or performing cryptocurrency mining. Does GuardDuty support this?",
+    options: [
+      "Yes — GuardDuty includes a dedicated cryptocurrency attack detection category that identifies instances performing mining or participating in mining pools",
+      "No — cryptomining detection requires Amazon Inspector, not GuardDuty",
+      "No — GuardDuty only detects network DDoS patterns",
+      "Only if Malware Protection is disabled"
+    ],
+    explanation: "GuardDuty has a dedicated cryptocurrency attack detection category; this is explicitly called out as relevant for the exam. Inspector covers package vulnerabilities, not runtime mining; GuardDuty is not limited to DDoS; and Malware Protection is an optional extension, not a precondition to disable."
+  },
+  {
+    domain: 6,
+    service: "GuardDuty",
+    q: "A CloudFormation StackSet is deploying GuardDuty enablement across an organization. In some accounts the stack FAILS because GuardDuty is already enabled. What is the recommended pattern to fix this idempotency problem?",
+    options: [
+      "Use a CloudFormation custom resource backed by a Lambda function that checks whether GuardDuty is already enabled and only invokes the enablement API if necessary; deploy via StackSets",
+      "Delete GuardDuty from every account before running the StackSet",
+      "Use a wait-condition so the stack waits until GuardDuty fails, then retries forever",
+      "Replace StackSets with per-account manual deployment"
+    ],
+    explanation: "Direct CFN enablement fails if GuardDuty is already enabled; a Lambda-backed custom resource that checks state and conditionally enables it, deployed via StackSets, is the documented fix. Deleting existing GuardDuty loses history, wait-conditions don't convert failure to success, and manual deployment defeats scale."
+  },
+  {
+    domain: 6,
+    service: "GuardDuty",
+    q: "Which of the following are core data sources that GuardDuty analyzes automatically once enabled, without requiring you to separately enable the underlying service?",
+    options: [
+      "CloudTrail management and data events, VPC Flow Logs, and DNS logs",
+      "Only CloudTrail — VPC Flow Logs must be enabled separately before GuardDuty can read them",
+      "Only VPC Flow Logs — CloudTrail is considered optional",
+      "AWS Config snapshots and Trusted Advisor checks"
+    ],
+    explanation: "GuardDuty's core, always-on data sources are CloudTrail management + data events, VPC Flow Logs, and DNS logs. GuardDuty reads these streams independently — you do NOT need to separately enable CloudTrail, Flow Logs, or DNS logs. Config/Trusted Advisor aren't GuardDuty sources."
+  },
+  {
+    domain: 6,
+    service: "GuardDuty",
+    q: "A security team wants to test its automated response workflow for a GuardDuty SSH brute-force finding WITHOUT creating a real attack. How?",
+    options: [
+      "Generate GuardDuty sample findings — synthetic findings for any finding type that exercise EventBridge, Lambda, and notifications end to end",
+      "Temporarily open port 22 to 0.0.0.0/0 and wait for real attackers",
+      "Forge CloudTrail events with a Lambda function",
+      "Disable GuardDuty and enable it again to trigger a first-time finding"
+    ],
+    explanation: "Sample findings are the documented mechanism to generate synthetic findings (for any finding type) to test EventBridge rules, Lambda functions, and notification systems. The other options either create real risk or don't generate findings."
+  },
+  {
+    domain: 6,
+    service: "GuardDuty",
+    q: "In a multi-account GuardDuty setup that uses a delegated administrator, where are findings published?",
+    options: [
+      "To both the member account and the administrator account via EventBridge, enabling centralized monitoring and response",
+      "Only to the management account of the organization",
+      "Only to the member account — the administrator must poll an API",
+      "To SNS only; EventBridge is not supported in multi-account mode"
+    ],
+    explanation: "Findings are published to EventBridge in both the member and administrator accounts, enabling centralized monitoring and response. The administrator does not need to poll, and EventBridge works in multi-account mode."
+  },
+  {
+    domain: 6,
+    service: "GuardDuty",
+    q: "A security team wants GuardDuty administered by a dedicated security account — NOT by the Organizations management account. Is this supported?",
+    options: [
+      "Yes — GuardDuty supports a delegated administrator pattern where a non-management account becomes the administrator, separating GuardDuty admin from overall org admin",
+      "No — GuardDuty administration must be done from the Organizations management account",
+      "Only if the organization is in Consolidated Billing mode",
+      "Only by giving every security team member org-wide admin permissions"
+    ],
+    explanation: "The delegated administrator pattern designates a non-management account as the GuardDuty administrator, so you can delegate security operations without granting org-wide admin. It does not require Consolidated Billing or over-privileged team members."
+  },
+  {
+    domain: 6,
+    service: "GuardDuty",
+    q: "What is the difference between a GuardDuty trusted IP list and a threat IP list, and who can manage them in a multi-account setup?",
+    options: [
+      "Trusted IP lists suppress findings for trusted CIDRs; threat IP lists generate findings for known malicious CIDRs; only the GuardDuty administrator account can manage these lists",
+      "Both lists generate findings; any member account can manage them",
+      "Trusted IP lists generate extra findings; threat IP lists suppress findings",
+      "The two lists are identical but stored in different regions"
+    ],
+    explanation: "Trusted IP lists suppress findings for trusted CIDRs (useful during penetration testing); threat IP lists fire findings for known malicious CIDRs. In multi-account setups, only the GuardDuty administrator account can manage them, ensuring consistent threat intelligence."
+  },
+  {
+    domain: 6,
+    service: "GuardDuty",
+    q: "GuardDuty detects an SSH brute-force finding against an EC2 instance NOT protected by WAF. Per the documented remediation pattern, what should the Lambda function triggered by EventBridge do?",
+    options: [
+      "Update the VPC Network ACL to deny traffic from the malicious source IP",
+      "Stop the EC2 instance's AutoScaling group to scale in to zero",
+      "Add the IP to the GuardDuty trusted list to silence it",
+      "Invoke Shield Advanced's SRT via Lambda"
+    ],
+    explanation: "For instances behind WAF, the Lambda updates the WAF Web ACL; for instances without WAF, it updates the VPC Network ACL to deny traffic from the source IP. Scaling to zero is disruptive and off-pattern, adding the IP to trusted would suppress findings, and SRT engagement is manual, not a Lambda step."
+  },
+  {
+    domain: 6,
+    service: "GuardDuty",
+    q: "A back-door C2 pattern is detected by GuardDuty, and remediation must include updating an AWS Network Firewall rule group, plus success/failure notifications. Which architecture fits the documented pattern?",
+    options: [
+      "EventBridge invokes a Step Functions state machine; Lambdas check/add the malicious IP to a DB and call the Network Firewall API; separate SNS topics publish success and failure notifications",
+      "EventBridge invokes a single Lambda that synchronously calls every downstream API and returns success",
+      "SQS FIFO queue buffers findings; consumers call Network Firewall; SNS sends one combined notification",
+      "Systems Manager Run Command runs on the Network Firewall endpoint"
+    ],
+    explanation: "The documented Back-Door architecture uses a Step Functions state machine orchestrated from EventBridge, Lambdas for state and Network Firewall API calls, and separate SNS topics for success/failure. A monolithic Lambda, SQS buffering, or SSM Run Command on a firewall endpoint don't match the pattern."
+  },
+  /* -- Detective (3) -- */
+  {
+    domain: 6,
+    service: "Detective",
+    q: "A team notes that after every GuardDuty finding, analysts spend hours correlating VPC Flow Logs, CloudTrail events, and other GuardDuty findings by hand. Which service directly addresses this?",
+    options: [
+      "Amazon Detective — it uses ML and graph analysis to automatically collect and process events from VPC Flow Logs, CloudTrail, and GuardDuty to isolate root cause",
+      "Amazon Inspector — it performs vulnerability scanning and correlation",
+      "AWS Config Aggregator — it correlates compliance data across accounts",
+      "AWS Security Hub — it replaces Detective for correlation"
+    ],
+    explanation: "Detective provides root-cause analysis for security findings using ML and graph analysis over Flow Logs, CloudTrail, and GuardDuty. Inspector is vulnerability scanning, Config aggregators summarize compliance but don't graph-correlate security events, and Security Hub centralizes findings but doesn't perform the documented graph analysis."
+  },
+  {
+    domain: 6,
+    service: "Detective",
+    q: "Which data sources does Detective automatically ingest to build its unified investigation view?",
+    options: [
+      "VPC Flow Logs, CloudTrail, and GuardDuty findings",
+      "S3 access logs and ALB access logs only",
+      "EC2 system logs collected via CloudWatch Agent",
+      "AWS X-Ray traces only"
+    ],
+    explanation: "Detective automatically collects and processes events from VPC Flow Logs, CloudTrail, and GuardDuty findings. S3/ALB access logs, CloudWatch Agent OS logs, and X-Ray traces are not the documented sources."
+  },
+  {
+    domain: 6,
+    service: "Detective",
+    q: "Which statement best characterizes Detective's role relative to GuardDuty, Macie, and Security Hub?",
+    options: [
+      "Detective performs root-cause analysis for findings generated by services like GuardDuty, Macie, and Security Hub",
+      "Detective generates security findings that Macie and Security Hub then route to operators",
+      "Detective replaces Security Hub as the findings aggregation service",
+      "Detective is an alternative to AWS Config for compliance evaluation"
+    ],
+    explanation: "Detective provides root-cause analysis for security findings produced by other services (GuardDuty, Macie, Security Hub, etc.). It does not generate findings, replace Security Hub, or perform compliance evaluation like Config."
+  },
+  /* -- Inspector (6) -- */
+  {
+    domain: 6,
+    service: "Inspector",
+    q: "A team enables Amazon Inspector in an account but sees no findings for several EC2 instances. What is the most likely missing prerequisite?",
+    options: [
+      "The SSM Agent is not installed or operational on those instances — Inspector leverages Systems Manager to collect inventory",
+      "The instances are missing a public IP address",
+      "Inspector requires the instances to be in a VPC with a NAT gateway",
+      "Inspector can only assess Windows instances by default"
+    ],
+    explanation: "Inspector for EC2 requires the SSM Agent to be installed and running — it leverages Systems Manager behind the scenes. Without SSM Agent, inventory cannot be collected and no findings are produced. Public IPs, NAT gateways, and OS restrictions aren't prerequisites."
+  },
+  {
+    domain: 6,
+    service: "Inspector",
+    q: "To be assessed by Inspector, an EC2 instance must be a managed instance in Systems Manager. Which of these is a valid way to achieve that?",
+    options: [
+      "Attach an IAM role with Systems Manager permissions to the instance, OR enable the Default Host Management Configuration feature to auto-register the instance as managed",
+      "Add the instance ID to a static list in the Inspector console",
+      "Manually create a `/managed/true` tag — SSM reads it on next boot",
+      "Place the instance in the same VPC as Inspector — it registers automatically"
+    ],
+    explanation: "An instance becomes an SSM managed instance either by attaching an IAM role with SSM permissions or by enabling Default Host Management Configuration, which automatically registers it. Tags, console whitelists, and VPC co-location don't register instances with SSM."
+  },
+  {
+    domain: 6,
+    service: "Inspector",
+    q: "Which three resource categories does Amazon Inspector evaluate?",
+    options: [
+      "EC2 instances, container images in Amazon ECR, and AWS Lambda functions",
+      "EC2 instances, S3 buckets, and DynamoDB tables",
+      "Only EC2 instances, and only for operating system CVEs",
+      "IAM users, IAM roles, and IAM policies"
+    ],
+    explanation: "Inspector evaluates EC2 (OS/package CVEs + network reachability), container images in ECR, and Lambda function code and dependencies. S3/DynamoDB, OS-only scope, and IAM evaluation are not Inspector's domain."
+  },
+  {
+    domain: 6,
+    service: "Inspector",
+    q: "Where does Inspector automatically publish findings once analysis is complete?",
+    options: [
+      "AWS Security Hub (central visibility) and Amazon EventBridge (for automated response workflows)",
+      "SQS queues only",
+      "An S3 bucket as raw CVE CSV dumps",
+      "CloudTrail — Inspector findings appear as management events"
+    ],
+    explanation: "Findings are automatically reported to Security Hub and published as events to EventBridge. SQS, raw S3 CSVs, and CloudTrail are not the documented destinations."
+  },
+  {
+    domain: 6,
+    service: "Inspector",
+    q: "How does Inspector respond when the CVE database is updated with new vulnerabilities?",
+    options: [
+      "It automatically re-scans all managed resources to identify newly discovered vulnerabilities",
+      "Users must manually kick off a re-scan from the console for each resource",
+      "It only re-scans on the next deployment of the resource",
+      "It re-scans only Lambda functions, since EC2 and ECR are static"
+    ],
+    explanation: "Inspector performs continuous re-scanning: when the CVE database is updated, it automatically re-scans managed resources. Manual kickoff, deployment-only rescan, or Lambda-only rescan are not the documented behavior."
+  },
+  {
+    domain: 6,
+    service: "Inspector",
+    q: "For an EC2 instance to reach AWS Systems Manager (and therefore be usable by Inspector), what network connectivity is required?",
+    options: [
+      "The instance must be able to reach AWS Systems Manager endpoints — either the public endpoint or a private endpoint via AWS PrivateLink",
+      "The instance must have a public Elastic IP",
+      "The instance must be in a VPC peered with the Inspector service VPC",
+      "The instance must connect to the Inspector API directly, bypassing SSM"
+    ],
+    explanation: "Inspector requires the instance to reach SSM endpoints, either the public endpoint or a PrivateLink endpoint. Public EIPs, VPC peering to a 'service VPC', and direct-to-Inspector connections aren't required or documented."
+  },
+  /* -- EC2 AMI (6) -- */
+  {
+    domain: 6,
+    service: "EC2 AMI",
+    q: "Your source account wants to share an AMI backed by an ENCRYPTED EBS snapshot with another AWS account. Which requirement must be satisfied?",
+    options: [
+      "The AMI must be encrypted with a customer-managed KMS key, and the source account must grant the target account KMS permissions (describe, decrypt, re-encrypt, generate data keys)",
+      "The AMI must be encrypted with an AWS-managed key so it can be shared automatically",
+      "The AMI must be decrypted temporarily during sharing",
+      "Encrypted AMIs cannot be shared cross-account under any circumstance"
+    ],
+    explanation: "AMIs backed by encrypted EBS volumes can be shared only when encrypted with a customer-managed key — AWS-managed keys cannot be shared cross-account. The source must also grant KMS permissions to describe, decrypt, re-encrypt, and generate data keys. Encrypted AMIs are shareable; no temporary decryption step is required."
+  },
+  {
+    domain: 6,
+    service: "EC2 AMI",
+    q: "What is the most accurate description of cross-account AMI sharing ownership and scope?",
+    options: [
+      "Sharing does not transfer ownership — the source account retains ownership; the AMI can be shared with specific account IDs, an entire Organization, specific OUs, or made public (unencrypted only)",
+      "Sharing transfers ownership to the target account",
+      "Sharing only supports specific AWS account IDs — Organizations and OUs are not supported",
+      "Sharing requires both accounts to be in the same AWS Organization"
+    ],
+    explanation: "The source account retains ownership. Sharing targets can be account IDs, an entire AWS Organization, specific OUs, or public (public only for unencrypted AMIs). No same-org requirement exists."
+  },
+  {
+    domain: 6,
+    service: "EC2 AMI",
+    q: "A target account wants to copy a shared encrypted AMI and re-encrypt it with its own CMK so it fully owns the result. What steps must happen?",
+    options: [
+      "Source grants the target read permissions on the EBS snapshots backing the AMI; the target calls CopyImage and re-encrypts the snapshot with its own CMK during the copy",
+      "The target calls CopyImage with no additional permissions — AWS handles KMS automatically",
+      "The target must detach and re-attach the EBS volume across accounts",
+      "AMIs cannot be copied between accounts; only sharing is supported"
+    ],
+    explanation: "Cross-account copy requires the source to grant read permissions on the EBS snapshots; then the target calls CopyImage and can re-encrypt with its own CMK during the copy, producing an AMI fully owned and encrypted by the target's key. No snapshot hand-off or EBS re-attachment is involved, and copying IS supported."
+  },
+  {
+    domain: 6,
+    service: "EC2 AMI",
+    q: "What is the simplest, most reliable way to MOVE an EC2 instance from one Availability Zone to another within the same region?",
+    options: [
+      "Create an AMI from the source instance and launch a new instance from the AMI into a subnet in the target AZ",
+      "Attach the root EBS volume to an instance in the target AZ",
+      "Use VPC peering between the two AZs",
+      "Run aws ec2 migrate-instance --az <target>"
+    ],
+    explanation: "Creating an AMI and launching a new instance in the target AZ's subnet is the standard, reliable pattern — the AMI captures the complete state. EBS volumes are AZ-scoped (you can't attach across AZs), VPC peering doesn't move instances, and there is no migrate-instance API."
+  },
+  {
+    domain: 6,
+    service: "EC2 AMI",
+    q: "An AMI's permissions settings include a 'Create Volume permission' option. When sharing an AMI, what does this grant?",
+    options: [
+      "It grants the recipient permission to create EBS volumes from the snapshots backing the AMI, so the target account can fully use the shared AMI",
+      "It grants the recipient permission to delete the source account's EBS volumes",
+      "It grants the recipient permission to make the AMI public on their behalf",
+      "It is a billing setting controlling who pays for the volumes"
+    ],
+    explanation: "Create Volume permission grants the recipient permission to create EBS volumes from the backing snapshots, enabling full use of the shared AMI. It does not grant destruction rights, public-sharing rights, or billing control."
+  },
+  {
+    domain: 6,
+    service: "EC2 AMI",
+    q: "A team wants to make an encrypted AMI public so anyone can launch from it. Is this possible?",
+    options: [
+      "No — public sharing is only available for unencrypted AMIs",
+      "Yes — any AMI can be made public",
+      "Yes, but only if the KMS key used is an AWS-managed key",
+      "Yes, but only within the same AWS Organization"
+    ],
+    explanation: "Public sharing is only available for unencrypted AMIs. AWS-managed keys cannot be shared cross-account at all, and 'within the same Organization' is not 'public.'"
+  },
+  /* -- Secrets Manager (5) -- */
+  {
+    domain: 6,
+    service: "Secrets Manager",
+    q: "A team needs to store and rotate RDS database credentials automatically, without storing them in code. Which service is purpose-built for this?",
+    options: [
+      "AWS Secrets Manager — it provides enforced rotation, automatic secret generation via Lambda, and native integration with RDS/Aurora/Redshift/DocumentDB",
+      "AWS Systems Manager Parameter Store — it is the exam-recommended answer for RDS credential rotation",
+      "AWS KMS — it natively rotates RDS passwords",
+      "IAM Identity Center — it issues short-lived DB passwords for RDS"
+    ],
+    explanation: "Secrets Manager is specifically designed for secret lifecycle management and has deep native integration with RDS/Aurora/Redshift/DocumentDB. The notes call out that any exam question mentioning credential storage or rotation for database services should suggest Secrets Manager. Parameter Store is general-purpose config, KMS encrypts but doesn't rotate DB creds, and Identity Center doesn't issue DB passwords."
+  },
+  {
+    domain: 6,
+    service: "Secrets Manager",
+    q: "How does Secrets Manager perform automatic secret rotation?",
+    options: [
+      "At the configured rotation interval, it invokes an AWS Lambda function that produces the new secret value and updates the relevant service (for example, the RDS database user password)",
+      "It reads the database directly and issues ALTER USER statements itself without Lambda",
+      "It delegates rotation entirely to AWS KMS key rotation",
+      "It only rotates secrets manually on user request"
+    ],
+    explanation: "Rotation is performed by a Lambda function invoked by Secrets Manager at the configured interval; the Lambda generates the new value and updates the target (such as the DB). KMS key rotation rotates KMS keys, not secret values, and rotation in Secrets Manager is automatic when configured, not manual-only."
+  },
+  {
+    domain: 6,
+    service: "Secrets Manager",
+    q: "Your primary region goes down. You have a multi-region-replicated Secrets Manager secret. How do you continue serving applications in the secondary region?",
+    options: [
+      "Promote the replica secret to a standalone secret in the secondary region so applications there can continue to access credentials without interruption",
+      "Create a brand-new secret in the secondary region and paste the credentials manually",
+      "Wait for the primary region to come back — replicas are read-only and cannot be promoted",
+      "Reconfigure applications to call the primary region over a VPN"
+    ],
+    explanation: "In a DR scenario, the replica can be promoted to a standalone secret so apps in the secondary region keep working. Replicas are usable (not merely read-only forever), and reconfiguring apps to call an impaired region defeats the point of DR."
+  },
+  {
+    domain: 6,
+    service: "Secrets Manager",
+    q: "An RDS database is configured with cross-region read replicas. What happens to the Secrets Manager secret used for credentials?",
+    options: [
+      "The secret is automatically available in the secondary region, so the replica database instances can be accessed using credentials stored in that region's local replica secret",
+      "The secret must be manually recreated in every secondary region",
+      "The secret cannot be used with cross-region read replicas at all",
+      "The secret is copied only when the RDS instance is failed over"
+    ],
+    explanation: "When RDS is configured with cross-region read replicas, the corresponding secret is automatically available in the secondary region, allowing replica instances to be accessed via local replica secrets. Manual recreation is not required, and the feature is compatible with cross-region read replicas."
+  },
+  {
+    domain: 6,
+    service: "Secrets Manager",
+    q: "What is the key difference between AWS Secrets Manager and AWS Systems Manager Parameter Store?",
+    options: [
+      "Secrets Manager is purpose-built for secret lifecycle management with enforced rotation, automatic generation, and deep database integration; Parameter Store is a general-purpose configuration management service",
+      "They are identical — the only difference is naming",
+      "Parameter Store has deeper database integration than Secrets Manager",
+      "Secrets Manager cannot store API keys, only database credentials"
+    ],
+    explanation: "Secrets Manager is specifically designed for secret lifecycle management — enforced rotation, auto-generation, and deep DB integration. Parameter Store is general-purpose config. Secrets Manager is not limited to DB credentials and has stronger DB integration than Parameter Store."
+  },
+  /* -- Trusted Advisor (5) -- */
+  {
+    domain: 6,
+    service: "Trusted Advisor",
+    q: "A company on AWS Basic Support wants programmatic access to the FULL Trusted Advisor check set (all categories) via the AWS Support API. What must they do first?",
+    options: [
+      "Upgrade to a Business or Enterprise Support plan — full checks and programmatic access to Trusted Advisor via the AWS Support API require one of those plans",
+      "Nothing — the Support API is free for all accounts",
+      "Enable Config to unlock the Support API",
+      "Switch to Enterprise Discount Program pricing"
+    ],
+    explanation: "Access to the full check suite and programmatic access via the Support API require Business or Enterprise Support. The free core-check tier does not include the full suite, and Config/pricing programs don't unlock the Support API."
+  },
+  {
+    domain: 6,
+    service: "Trusted Advisor",
+    q: "Which checks are in the free, core set available to all AWS accounts?",
+    options: [
+      "Critical security and service quota items: public S3 buckets, security groups with unrestricted access to specific ports, public EBS snapshots, public RDS snapshots, and root account usage",
+      "Full cost optimization coverage including idle EC2 and under-utilized EBS volumes",
+      "Full fault tolerance coverage, including Route 53 health checks",
+      "Full operational excellence recommendations"
+    ],
+    explanation: "Core checks focus on foundational security and service quota items: public S3, open SGs, public EBS/RDS snapshots, root usage. Full cost/fault tolerance/operational excellence coverage requires Business or Enterprise Support."
+  },
+  {
+    domain: 6,
+    service: "Trusted Advisor",
+    q: "Trusted Advisor detects an EC2 instance with extremely low CPU utilization over 14 days. How can you auto-remediate this via an event-driven flow?",
+    options: [
+      "Trusted Advisor publishes an event to EventBridge; a rule can route it to SNS for manual review or invoke a Lambda to stop, terminate, or right-size the instance",
+      "Trusted Advisor writes a CloudWatch metric; a CloudWatch alarm must call SSM Automation directly",
+      "Trusted Advisor itself calls StopInstances on low-utilization instances",
+      "Trusted Advisor only emails the account owner; no eventing is possible"
+    ],
+    explanation: "Trusted Advisor emits events to EventBridge for low-utilization findings; rules can fan out to SNS or Lambda for right-sizing/stopping. Trusted Advisor does not itself take remediation action or rely on metric-to-alarm flows for this."
+  },
+  {
+    domain: 6,
+    service: "Trusted Advisor",
+    q: "Which statement about Trusted Advisor's service-quota monitoring is correct?",
+    options: [
+      "It tracks roughly 50+ service quotas (for example, EC2 on-demand, Lambda concurrency, DynamoDB capacity) and emits events at thresholds like 80% and 100%; the AWS Service Quotas console is the authoritative source for complete quota visibility",
+      "Trusted Advisor monitors every AWS service quota in existence",
+      "Only the AWS Service Quotas console can emit events; Trusted Advisor cannot",
+      "Quota events fire only when usage exceeds the limit by 200%"
+    ],
+    explanation: "Trusted Advisor monitors ~50+ quotas and emits events at thresholds (commonly 80% and 100%), but it does NOT cover every AWS quota — the Service Quotas console is authoritative for complete coverage. Trusted Advisor is the source of these EventBridge events, and thresholds are sub-100%, not 200%."
+  },
+  {
+    domain: 6,
+    service: "Trusted Advisor",
+    q: "Which six recommendation categories does Trusted Advisor evaluate?",
+    options: [
+      "Cost optimization, performance, security, fault tolerance, service limits, and operational excellence",
+      "Only security and cost optimization",
+      "Latency, throughput, durability, availability, elasticity, and cost",
+      "Compliance, data residency, encryption, identity, backup, and networking"
+    ],
+    explanation: "The documented Trusted Advisor categories are cost optimization, performance, security, fault tolerance, service limits, and operational excellence. The other options miss categories or invent new ones."
   }
 ];
